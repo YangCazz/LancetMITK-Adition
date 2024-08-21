@@ -12,6 +12,9 @@
 
 #include "surfaceregistraion.h"
 
+#include "vtkPlaneSource.h"
+#include "vtkPolyDataMapper.h"
+
 
 lancet::ThaStemObject::ThaStemObject():
 m_vtkMatrix_groupGeometry(vtkMatrix4x4::New()),
@@ -22,7 +25,12 @@ m_Surface_head(mitk::Surface::New()),
 m_Node_Surface_stem(mitk::DataNode::New()),
 m_Node_Surface_head(mitk::DataNode::New()),
 m_Node_Pset_headCenter(mitk::DataNode::New()),
-m_Node_Surface_stemFrame(mitk::DataNode::New())
+m_Node_Surface_stemFrame(mitk::DataNode::New()),
+m_Node_Pset_StemCutPlane(mitk::DataNode::New()),
+m_Pset_StemCutPlane(mitk::PointSet::New()),
+m_Node_Surface_StemCutPlane(mitk::DataNode::New()),
+m_Surface_StemCutPlane(mitk::Surface::New()),
+m_vtkMatrix_CutPlaneMatrix(vtkMatrix4x4::New())
 {
 	CreateInternalFrame();
 }
@@ -165,6 +173,11 @@ void lancet::ThaStemObject::SetGroupGeometry(vtkSmartPointer<vtkMatrix4x4> newMa
 
 	m_Pset_headCenter->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(newMatrix);
 
+	/*MITK_INFO << "HEAD CENTER:" << m_Pset_headCenter->GetPoint(0)[0] << ","
+		<< m_Pset_headCenter->GetPoint(0)[1] << ","
+		<< m_Pset_headCenter->GetPoint(0)[2];
+	MITK_INFO << "================================";*/
+	/*
 	// The head surface should be first moved to the headCenter and apply the newMatrix
 	mitk::Point3D headCenter_worldFrame = m_Pset_headCenter->GetPoint(0);
 	mitk::Point3D headCenter_stemFrame;
@@ -175,8 +188,20 @@ void lancet::ThaStemObject::SetGroupGeometry(vtkSmartPointer<vtkMatrix4x4> newMa
 	tmpTransform->Translate(headCenter_stemFrame[0], headCenter_stemFrame[1], headCenter_stemFrame[2]);
 	tmpTransform->Concatenate(newMatrix);
 	tmpTransform->Update();
-
+	
 	m_Surface_head->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTransform->GetMatrix());
+	*/
+	m_Surface_head->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(newMatrix);
+
+	m_Pset_StemCutPlane->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(newMatrix);
+
+	//vtkNew<vtkTransform> CutPlaneMatrix;
+	//CutPlaneMatrix->PostMultiply();
+	//CutPlaneMatrix->SetMatrix(newMatrix);
+	//CutPlaneMatrix->Concatenate(m_vtkMatrix_CutPlaneMatrix);
+	//CutPlaneMatrix->Update();
+	//m_Surface_StemCutPlane->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(CutPlaneMatrix->GetMatrix());
+	m_Surface_StemCutPlane->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(newMatrix);
 
 	m_vtkMatrix_groupGeometry->DeepCopy(newMatrix);
 }
@@ -189,7 +214,7 @@ void lancet::ThaStemObject::SetStemSurface(mitk::Surface::Pointer stemSurface)
 
 void lancet::ThaStemObject::SetHeadCenter(mitk::PointSet::Pointer headCenterPset_stemFrame_new)
 {
-	
+	/*
 	mitk::Point3D headCenter_stemFrame_new = headCenterPset_stemFrame_new->GetPoint(0);
 	vtkNew<vtkTransform> tmpTransform;
 	tmpTransform->PostMultiply();
@@ -198,15 +223,14 @@ void lancet::ThaStemObject::SetHeadCenter(mitk::PointSet::Pointer headCenterPset
 	tmpTransform->Update();
 
 	m_Surface_head->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTransform->GetMatrix());
-
-
+	*/
 	m_Pset_headCenter = headCenterPset_stemFrame_new;
 	m_Pset_headCenter->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(GetvtkMatrix_groupGeometry());
-
 }
 
 void lancet::ThaStemObject::SetHeadSurface(mitk::Surface::Pointer headSurface)
 {
+	/*
 	// The imported head surface should be moved to the head center
 	vtkNew<vtkMatrix4x4> identityMatrix;
 	headSurface->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(identityMatrix);
@@ -230,11 +254,11 @@ void lancet::ThaStemObject::SetHeadSurface(mitk::Surface::Pointer headSurface)
 	tmpTransform->Translate(headCenter_stemFrame[0], headCenter_stemFrame[1], headCenter_stemFrame[2]);
 	tmpTransform->Concatenate(GetvtkMatrix_groupGeometry());
 	tmpTransform->Update();
-	
-	m_Surface_head= headSurface;
+	*/
+	m_Surface_head = headSurface;
 
-	m_Surface_head->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTransform->GetMatrix());
-
+	//m_Surface_head->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTransform->GetMatrix());
+	m_Surface_head->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(GetvtkMatrix_groupGeometry());
 }
 
 
@@ -268,6 +292,16 @@ bool lancet::ThaStemObject::CheckDataAvailability()
 	return true;
 }
 
+void lancet::ThaStemObject::SetStemNeckAngle(double angle)
+{
+	m_StemNeckAngle = angle;
+}
+
+double lancet::ThaStemObject::GetStemNeckAngle()
+{
+	return m_StemNeckAngle;
+}
+
 bool lancet::ThaStemObject::AlignStemObjectWithWorldFrame()
 {
 	// Since the imported stem models are already aligned
@@ -277,16 +311,67 @@ bool lancet::ThaStemObject::AlignStemObjectWithWorldFrame()
 	{
 		return false;
 	}
-
+	GenerateStemCutPlaneSurface();
+	/*
 	// The imported head surface should be moved to the head center
-	
 	auto headCenter = m_Pset_headCenter->GetPoint(0);
 	
 	vtkNew<vtkTransform> tmpTransform;
-	tmpTransform->Translate(headCenter[0],headCenter[1],headCenter[2]);
+	tmpTransform->Translate(headCenter[0], headCenter[1], headCenter[2]);
 	tmpTransform->Update();	
 	
 	m_Surface_head->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTransform->GetMatrix());
+	*/
+	//TO DO:
+	//auto stemAssemblySurfaceCenter = m_Pset_stemLine->GetPoint(0);
+	//auto headAssemblySurfaceCenter = m_Pset_headAxis->GetPoint(1);
+	//auto stemAxisEnd = m_Pset_stemLine->GetPoint(1);
+	//auto FemoralheadCenter = m_Pset_headAxis->GetPoint(0);
+	//auto stemNormal1 = m_Pset_stemNormal->GetPoint(0);
+	//auto stemNormal2 = m_Pset_stemNormal->GetPoint(1);
+	//
+	//vtkNew<vtkTransform> stemTransform;
+	//
+	//stemTransform->Translate(-stemAssemblySurfaceCenter[0], -stemAssemblySurfaceCenter[1], -stemAssemblySurfaceCenter[2]);
+
+	//double stemAxis[3] = { stemAxisEnd[0] - stemAssemblySurfaceCenter[0],
+	//stemAxisEnd[1] - stemAssemblySurfaceCenter[1],
+	//stemAxisEnd[2] - stemAssemblySurfaceCenter[2] };
+
+	//double headAxis[3] = { headAssemblySurfaceCenter[0] - FemoralheadCenter[0],
+	//headAssemblySurfaceCenter[1] - FemoralheadCenter[1],
+	//headAssemblySurfaceCenter[2] - FemoralheadCenter[2] };
+
+	//double RotAngle = 0;
+	//double stemAxisNorm = sqrt(stemAxis[0] * stemAxis[0] + stemAxis[1] * stemAxis[1] + stemAxis[2] * stemAxis[2]);
+	//double headAxisNorm = sqrt(headAxis[0] * headAxis[0] + headAxis[1] * headAxis[1] + headAxis[2] * headAxis[2]);
+	//if (stemAxisNorm != 0 || headAxisNorm != 0)
+	//{
+	//	RotAngle = std::acos((stemAxis[0] * headAxis[0] + stemAxis[1] * headAxis[1] + stemAxis[2] * headAxis[2]) /
+	//		(stemAxisNorm * headAxisNorm)) / vtkMath::Pi() * 180;
+	//}
+	//double RotAxis[3]; 
+	//vtkMath::Cross(stemAxis, headAxis, RotAxis);
+	//stemTransform->RotateWXYZ(RotAngle, RotAxis);
+
+	//double tmpStemAssemblySurfaceCenter[3] = { stemAssemblySurfaceCenter[0], stemAssemblySurfaceCenter[1], stemAssemblySurfaceCenter[2] };
+	//stemTransform->TransformPoint(tmpStemAssemblySurfaceCenter, tmpStemAssemblySurfaceCenter);
+
+	//stemTransform->Translate(headAssemblySurfaceCenter[0] - tmpStemAssemblySurfaceCenter[0],
+	//	headAssemblySurfaceCenter[1] - tmpStemAssemblySurfaceCenter[1],
+	//	headAssemblySurfaceCenter[2] - tmpStemAssemblySurfaceCenter[2]);
+
+	//double TransStemAssemblySurfaceCenter[3], TransStemAxisEnd[3], TransStemNormal1[3], TransStemNormal2[3];
+	//stemTransform->TransformPoint(tmpStemAssemblySurfaceCenter, TransStemAssemblySurfaceCenter);
+	//stemTransform->TransformPoint(tmpStemAxisEnd, TransStemAxisEnd);
+	//stemTransform->TransformPoint(tmpStemNormal1, TransStemNormal1);
+	//stemTransform->TransformPoint(tmpStemNormal2, TransStemNormal2);
+
+	//m_Surface_stem->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(stemTransform->GetMatrix());
+	//m_Pset_stemLine->InsertPoint(0, TransStemAssemblySurfaceCenter);
+	//m_Pset_stemLine->InsertPoint(1, TransStemAxisEnd);
+	//m_Pset_stemNormal->InsertPoint(0, TransStemNormal1);
+	//m_Pset_stemNormal->InsertPoint(1, TransStemNormal2);
 
 	return true;
 }
@@ -298,6 +383,80 @@ void lancet::ThaStemObject::SetNode_Surface_stemFrame(mitk::DataNode::Pointer no
 	m_Node_Surface_stemFrame = node;
 	m_Surface_stemFrame = dynamic_cast<mitk::Surface*>(node->GetData());
 }
+
+void lancet::ThaStemObject::SetNode_Pset_StemCutPlane(mitk::DataNode::Pointer node)
+{
+	m_Node_Pset_StemCutPlane->SetVisibility(0);
+
+	m_Node_Pset_StemCutPlane = node;
+	SetPsetStemCutPlane(dynamic_cast<mitk::PointSet*>(node->GetData()));
+}
+
+void lancet::ThaStemObject::SetPsetStemCutPlane(mitk::PointSet::Pointer point)
+{
+	m_Pset_StemCutPlane = point;
+	m_Pset_StemCutPlane->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(GetvtkMatrix_groupGeometry());
+}
+
+void lancet::ThaStemObject::GenerateStemCutPlaneSurface()
+{
+	mitk::Point3D origin;
+	//auto origin = m_Pset_StemCutPlane->GetPoint(0);
+	m_Pset_StemCutPlane->GetGeometry()->WorldToIndex(m_Pset_StemCutPlane->GetPoint(0), origin);
+	mitk::Point3D end;
+	//auto end = m_Pset_StemCutPlane->GetPoint(1);
+	m_Pset_StemCutPlane->GetGeometry()->WorldToIndex(m_Pset_StemCutPlane->GetPoint(1), end);
+	double normal[3] = { end[0] - origin[0], end[1] - origin[1], end[2] - origin[2] };
+	vtkSmartPointer<vtkPlaneSource> planeSourceNew = vtkSmartPointer<vtkPlaneSource>::New();
+	planeSourceNew->SetOrigin(origin[0] - 30, origin[1] - 25, origin[2]);
+	planeSourceNew->SetPoint1(origin[0] + 30, origin[1] - 25, origin[2]);
+	planeSourceNew->SetPoint2(origin[0] - 30, origin[1] + 25, origin[2]);
+	planeSourceNew->SetNormal(normal);
+	planeSourceNew->Update();
+
+	m_Surface_StemCutPlane->SetVtkPolyData(planeSourceNew->GetOutput());
+
+	m_Node_Surface_StemCutPlane->SetData(m_Surface_StemCutPlane);
+}
+
+//void lancet::ThaStemObject::SetNode_Pset_stemLine(mitk::DataNode::Pointer node)
+//{
+//	m_Node_Pset_stemLine->SetVisibility(0);
+//	m_Node_Pset_stemLine = node;
+//	SetPset_stemLine(dynamic_cast<mitk::PointSet*>(node->GetData()));
+//}
+//
+//void lancet::ThaStemObject::SetNode_Pset_stemNormal(mitk::DataNode::Pointer node)
+//{
+//	m_Node_Pset_stemNormal->SetVisibility(0);
+//	m_Node_Pset_stemNormal = node;
+//	SetPset_stemNormal(dynamic_cast<mitk::PointSet*>(node->GetData()));
+//}
+//
+//void lancet::ThaStemObject::SetNode_Pset_headAxis(mitk::DataNode::Pointer node)
+//{
+//	m_Node_Pset_headAxis->SetVisibility(0);
+//	m_Node_Pset_headAxis = node;
+//	SetPset_headAxis(dynamic_cast<mitk::PointSet*>(node->GetData()));
+//}
+//
+//void lancet::ThaStemObject::SetPset_stemLine(mitk::PointSet::Pointer point)
+//{
+//	m_Pset_stemLine = point;
+//	m_Pset_stemLine->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(GetvtkMatrix_groupGeometry());
+//}
+//
+//void lancet::ThaStemObject::SetPset_stemNormal(mitk::PointSet::Pointer point)
+//{
+//	m_Pset_stemNormal = point;
+//	m_Pset_stemNormal->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(GetvtkMatrix_groupGeometry());
+//}
+//
+//void lancet::ThaStemObject::SetPset_headAxis(mitk::PointSet::Pointer point)
+//{
+//	m_Pset_headAxis = point;
+//	m_Pset_headAxis->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(GetvtkMatrix_groupGeometry());
+//}
 
 void lancet::ThaStemObject::SetNode_Surface_stem(mitk::DataNode::Pointer node)
 {

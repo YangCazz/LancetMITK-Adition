@@ -39,21 +39,12 @@ namespace lancet
 		void SetGroupGeometry(vtkSmartPointer<vtkMatrix4x4> newMatrix);
 
 		itkGetMacro(Surface_stem, mitk::Surface::Pointer)
-		// set stem surface and apply the group geometry
-		void SetStemSurface(mitk::Surface::Pointer stemSurface);
 
-		itkSetMacro(Surface_stemFrame, mitk::Surface::Pointer)
 		itkGetMacro(Surface_stemFrame, mitk::Surface::Pointer)
 
 		itkGetMacro(Pset_headCenter, mitk::PointSet::Pointer)
-		// set headCenter and apply the group geometry, and move the head surface
-		void SetHeadCenter(mitk::PointSet::Pointer headCenterPset_stemFrame_new);
-
 		itkGetMacro(Surface_head, mitk::Surface::Pointer);
-		// set head surface and apply the group geometry considering the headCenter
-		void SetHeadSurface(mitk::Surface::Pointer headSurface);
-
-
+		
 		itkGetMacro(Node_Surface_stem, mitk::DataNode::Pointer);
 		itkGetMacro(Node_Surface_head, mitk::DataNode::Pointer);
 		itkGetMacro(Node_Pset_headCenter, mitk::DataNode::Pointer);
@@ -63,6 +54,37 @@ namespace lancet
 		void SetNode_Surface_head(mitk::DataNode::Pointer node);
 		void SetNode_Pset_headCenter(mitk::DataNode::Pointer node);
 		void SetNode_Surface_stemFrame(mitk::DataNode::Pointer node);
+
+		//stem cutplane
+		void SetNode_Pset_StemCutPlane(mitk::DataNode::Pointer node);
+		void GenerateStemCutPlaneSurface();
+
+		itkGetMacro(Node_Pset_StemCutPlane, mitk::DataNode::Pointer);
+		itkGetMacro(Pset_StemCutPlane, mitk::PointSet::Pointer);
+		itkGetMacro(Node_Surface_StemCutPlane, mitk::DataNode::Pointer);
+		itkGetMacro(Surface_StemCutPlane, mitk::Surface::Pointer);
+
+		itkSetMacro(vtkMatrix_CutPlaneMatrix, vtkSmartPointer<vtkMatrix4x4>);
+		itkGetMacro(vtkMatrix_CutPlaneMatrix, vtkSmartPointer<vtkMatrix4x4>);
+		//itkGetMacro(Node_Surface_StemCutPlane, mitk::DataNode::Pointer node);
+		//itkGetMacro(Surface_StemCutPlane, mitk::Surface::Pointer surface);
+
+
+		//stem pointset
+		//void SetNode_Pset_stemLine(mitk::DataNode::Pointer node);
+		//void SetNode_Pset_stemNormal(mitk::DataNode::Pointer node);
+		//void SetNode_Pset_headAxis(mitk::DataNode::Pointer node);
+
+		//void SetPset_stemLine(mitk::PointSet::Pointer point);
+		//void SetPset_stemNormal(mitk::PointSet::Pointer point);
+		//void SetPset_headAxis(mitk::PointSet::Pointer point);
+
+		//itkGetMacro(Node_Pset_stemLine, mitk::DataNode::Pointer);
+		//itkGetMacro(Node_Pset_stemNormal, mitk::DataNode::Pointer);
+		//itkGetMacro(Node_Pset_headAxis, mitk::DataNode::Pointer);
+		//itkGetMacro(Pset_stemLine, mitk::PointSet::Pointer);
+		//itkGetMacro(Pset_stemNormal, mitk::PointSet::Pointer);
+		//itkGetMacro(Pset_headAxis, mitk::PointSet::Pointer);
 
 		/*
 		 * Move all the data components except for the stemFrame
@@ -75,6 +97,9 @@ namespace lancet
 		// Check if all the necessary data are ready 
 		bool CheckDataAvailability();
 
+		void SetStemNeckAngle(double angle);
+
+		double GetStemNeckAngle();
 	protected:
 
 		ThaStemObject();
@@ -83,6 +108,17 @@ namespace lancet
 		
 		// Create an internal frame
 		void CreateInternalFrame();
+
+		// set stem surface and apply the group geometry
+		void SetStemSurface(mitk::Surface::Pointer stemSurface);
+		//set stem cut plane normal point
+		void SetPsetStemCutPlane(mitk::PointSet::Pointer point);
+		// set head surface and apply the group geometry considering the headCenter
+		void SetHeadSurface(mitk::Surface::Pointer headSurface);
+		// set headCenter and apply the group geometry, and move the head surface
+		void SetHeadCenter(mitk::PointSet::Pointer headCenterPset_stemFrame_new);
+
+		itkSetMacro(Surface_stemFrame, mitk::Surface::Pointer);
 
 		// operation side: right(0), left(1)
 		int m_OperationSide{ 0 };
@@ -107,6 +143,16 @@ namespace lancet
 		mitk::DataNode::Pointer m_Node_Pset_headCenter;
 		mitk::DataNode::Pointer m_Node_Surface_stemFrame;
 
+		//stem neck angle
+		double m_StemNeckAngle = 135;
+
+		//stem cutplane
+		mitk::DataNode::Pointer m_Node_Pset_StemCutPlane;
+		mitk::PointSet::Pointer m_Pset_StemCutPlane;
+		mitk::DataNode::Pointer m_Node_Surface_StemCutPlane;
+		mitk::Surface::Pointer m_Surface_StemCutPlane;
+
+		vtkSmartPointer<vtkMatrix4x4> m_vtkMatrix_CutPlaneMatrix;
 	};
 }
 
