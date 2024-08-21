@@ -1,0 +1,7 @@
+project(org_mitk_lancet_htondi)
+
+mitk_create_plugin(
+  EXPORT_DIRECTIVE HTONDI_EXPORT
+  EXPORTED_INCLUDE_SUFFIXES src
+  MODULE_DEPENDS MitkQtWidgetsExt MitkIGTUI MitkIGT MitkLancetIGT MitkLancetRobot MitkMapperExt MitkLancetRegistration MitkLancetAlgo MitkGizmo MitkLancetGeoUtil MitkBoundingShape MitkRemeshing
+)

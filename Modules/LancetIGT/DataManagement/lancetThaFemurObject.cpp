@@ -86,19 +86,16 @@ void lancet::ThaFemurObject::SetGroupGeometry(vtkSmartPointer<vtkMatrix4x4> newM
 void lancet::ThaFemurObject::CalculateFemurVersion()
 {
 	// The native femoral version is the angle between the neck axis and epicondylar axis when
-	// these 2 axes are projected on a plane perpendicular to the femur anatomical axis
+	// these 2 axes are projected on a plane perpendicular to the femur canal
 	// a positive value (anteversion) is returned when the neck axis angled anteriorly relative to the
 	// epicondylar axis
 
 	// Compose neck axis: neck center + femurCOR
 	// Compose epicondylar axis, 0 is medial, 1 is lateral:
-	// Compose femur anatomical axis, 0 is proximal, 1 is distal;
+	// Compose femur canal axis, 0 is proximal, 1 is distal;
 	Eigen::Vector3d neckAxis;
 	Eigen::Vector3d epicondylarAxis;
-	// Eigen::Vector3d canalAxis;
-
-	Eigen::Vector3d anatomicalAxis;
-	Eigen::Vector3d midEpicondyles;
+	Eigen::Vector3d canalAxis;
 
 	neckAxis[0] = m_pset_femurCOR->GetPoint(0)[0] - m_pset_neckCenter->GetPoint(0)[0];
 	neckAxis[1] = m_pset_femurCOR->GetPoint(0)[1] - m_pset_neckCenter->GetPoint(0)[1];
@@ -108,37 +105,29 @@ void lancet::ThaFemurObject::CalculateFemurVersion()
 	epicondylarAxis[1] = m_pset_epicondyles->GetPoint(0)[1] - m_pset_epicondyles->GetPoint(1)[1];
 	epicondylarAxis[2] = m_pset_epicondyles->GetPoint(0)[2] - m_pset_epicondyles->GetPoint(1)[2];
 
-	midEpicondyles[0] = (m_pset_epicondyles->GetPoint(0)[0] + m_pset_epicondyles->GetPoint(1)[0]) / 2;
-	midEpicondyles[1] = (m_pset_epicondyles->GetPoint(0)[1] + m_pset_epicondyles->GetPoint(1)[1]) / 2;
-	midEpicondyles[2] = (m_pset_epicondyles->GetPoint(0)[2] + m_pset_epicondyles->GetPoint(1)[2]) / 2;
+	canalAxis[0] = m_pset_femurCanal->GetPoint(0)[0] - m_pset_femurCanal->GetPoint(1)[0];
+	canalAxis[1] = m_pset_femurCanal->GetPoint(0)[1] - m_pset_femurCanal->GetPoint(1)[1];
+	canalAxis[2] = m_pset_femurCanal->GetPoint(0)[2] - m_pset_femurCanal->GetPoint(1)[2];
 
-	// canalAxis[0] = m_pset_femurCanal->GetPoint(0)[0] - m_pset_femurCanal->GetPoint(1)[0];
-	// canalAxis[1] = m_pset_femurCanal->GetPoint(0)[1] - m_pset_femurCanal->GetPoint(1)[1];
-	// canalAxis[2] = m_pset_femurCanal->GetPoint(0)[2] - m_pset_femurCanal->GetPoint(1)[2];
-	// canalAxis.normalize();
+	canalAxis.normalize();
 
-	anatomicalAxis[0] = m_pset_femurCanal->GetPoint(0)[0] - midEpicondyles[0];
-	anatomicalAxis[1] = m_pset_femurCanal->GetPoint(0)[1] - midEpicondyles[1];
-	anatomicalAxis[2] = m_pset_femurCanal->GetPoint(0)[2] - midEpicondyles[2];
-	anatomicalAxis.normalize();
-
-	// Project the neckAxis onto the anatomical axis
-	Eigen::Vector3d neckAxis_ontoAnatomicalAxis = neckAxis.dot(anatomicalAxis) * anatomicalAxis;
+	// Project the neckAxis onto the canal axis
+	Eigen::Vector3d neckAxis_ontoCanalAxis = neckAxis.dot(canalAxis) * canalAxis;
 
 	// neckAxis projection onto the perpendicular plane 
-	Eigen::Vector3d neckAxis_ontoPlane = neckAxis - neckAxis_ontoAnatomicalAxis;
+	Eigen::Vector3d neckAxis_ontoPlane = neckAxis - neckAxis_ontoCanalAxis;
 
-	// Project the epicondylarAxis onto the anatomical axis
-	Eigen::Vector3d epicondylarAxis_ontoAnatomicalAxis = epicondylarAxis.dot(anatomicalAxis) * anatomicalAxis;
+	// Project the epicondylarAxis onto the canal axis
+	Eigen::Vector3d epicondylarAxis_ontoCanalAxis = epicondylarAxis.dot(canalAxis) * canalAxis;
 
 	// epicondylarAxis projection onto the perpendicular plane
-	Eigen::Vector3d epicondylarAxis_ontoPlane = epicondylarAxis - epicondylarAxis_ontoAnatomicalAxis;
+	Eigen::Vector3d epicondylarAxis_ontoPlane = epicondylarAxis - epicondylarAxis_ontoCanalAxis;
 
 	double femoralVersion = (180 / 3.14159) * acos(epicondylarAxis_ontoPlane.dot(neckAxis_ontoPlane)
 		/ (epicondylarAxis_ontoPlane.norm() * neckAxis_ontoPlane.norm()));
 
 	// Determine anteversion or retroversion; if ante, assign femoralVersion as (+); if retro, assign as (-)
-	double tmpValue = epicondylarAxis_ontoPlane.cross(neckAxis_ontoPlane).dot(anatomicalAxis);
+	double tmpValue = epicondylarAxis_ontoPlane.cross(neckAxis_ontoPlane).dot(canalAxis);
 	if (m_femurSide == 1)
 	{
 		if (tmpValue < 0)

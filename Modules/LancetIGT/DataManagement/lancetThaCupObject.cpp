@@ -12,16 +12,14 @@
 
 #include "surfaceregistraion.h"
 
-lancet::ThaCupObject::ThaCupObject() :
-	m_vtkMatrix_groupGeometry(vtkMatrix4x4::New()),
-	m_Surface_cup(mitk::Surface::New()),
-	m_Surface_liner(mitk::Surface::New()),
-	m_Surface_cupFrame(mitk::Surface::New()),
-	m_Node_Surface_cup(mitk::DataNode::New()),
-	m_Node_Surface_liner(mitk::DataNode::New()),
-	m_Node_Surface_cupFrame(mitk::DataNode::New()),
-	m_Node_Pset_cupCenter(mitk::DataNode::New()),
-	m_Pset_cupCenter(mitk::PointSet::New())
+lancet::ThaCupObject::ThaCupObject():
+m_vtkMatrix_groupGeometry(vtkMatrix4x4::New()),
+m_Surface_cup(mitk::Surface::New()),
+m_Surface_liner(mitk::Surface::New()),
+m_Surface_cupFrame(mitk::Surface::New()),
+m_Node_Surface_cup(mitk::DataNode::New()),
+m_Node_Surface_liner(mitk::DataNode::New()),
+m_Node_Surface_cupFrame(mitk::DataNode::New())
 {
 	CreateInternalFrame();
 }
@@ -164,8 +162,6 @@ void lancet::ThaCupObject::SetGroupGeometry(vtkSmartPointer<vtkMatrix4x4> newMat
 
 	m_Surface_cupFrame->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(newMatrix);
 
-	m_Pset_cupCenter->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(newMatrix);
-
 	m_vtkMatrix_groupGeometry->DeepCopy(newMatrix);
 }
 
@@ -179,12 +175,6 @@ void lancet::ThaCupObject::SetLinerSurface(mitk::Surface::Pointer linerSurface)
 {
 	m_Surface_liner = linerSurface;
 	m_Surface_liner->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(GetvtkMatrix_groupGeometry());
-}
-
-void lancet::ThaCupObject::SetPsetCupCenter(mitk::PointSet::Pointer cupCenterPset)
-{
-	m_Pset_cupCenter = cupCenterPset;
-	m_Pset_cupCenter->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(GetvtkMatrix_groupGeometry());
 }
 
 bool lancet::ThaCupObject::AlignCupObjectWithWorldFrame()
@@ -247,14 +237,6 @@ void lancet::ThaCupObject::SetNode_Surface_cupFrame(mitk::DataNode::Pointer node
 	m_Node_Surface_cupFrame->SetVisibility(0);
 	m_Node_Surface_cupFrame = node;
 	m_Surface_cupFrame = dynamic_cast<mitk::Surface*>(node->GetData());
-}
-
-void lancet::ThaCupObject::SetNode_Pset_cupCenter(mitk::DataNode::Pointer node)
-{
-	m_Node_Pset_cupCenter->SetVisibility(0);
-	m_Node_Pset_cupCenter = node;
-	// m_Surface_liner = dynamic_cast<mitk::Surface*>(node->GetData());
-	SetPsetCupCenter(dynamic_cast<mitk::PointSet*>(node->GetData()));
 }
 
 

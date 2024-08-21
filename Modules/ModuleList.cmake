@@ -8,6 +8,4 @@ set(MITK_MODULES
   LancetNCC
   LancetIGT
   LancetIGTUI
-  LancetTeethLhy
-  LancetStaubliRobot
 )

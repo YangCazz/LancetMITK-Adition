@@ -39,21 +39,22 @@ namespace lancet
 		void SetGroupGeometry(vtkSmartPointer<vtkMatrix4x4> newMatrix);
 
 		itkGetMacro(Surface_cup, mitk::Surface::Pointer)
+		// set cup surface and apply the group geometry
+		void SetCupSurface(mitk::Surface::Pointer cupSurface);
 
 		itkGetMacro(Surface_liner, mitk::Surface::Pointer)
-		
-		itkGetMacro(Surface_cupFrame, mitk::Surface::Pointer)
+		// set liner surface and apply the group geometry
+		void SetLinerSurface(mitk::Surface::Pointer linerSurface);
 
-		itkGetMacro(Pset_cupCenter, mitk::PointSet::Pointer)
+		itkSetMacro(Surface_cupFrame, mitk::Surface::Pointer)
+		itkGetMacro(Surface_cupFrame, mitk::Surface::Pointer)
 
 		void SetNode_Surface_cup(mitk::DataNode::Pointer node);
 		void SetNode_Surface_liner(mitk::DataNode::Pointer node);
 		void SetNode_Surface_cupFrame(mitk::DataNode::Pointer node);
-		void SetNode_Pset_cupCenter(mitk::DataNode::Pointer node);
 		itkGetMacro(Node_Surface_cup, mitk::DataNode::Pointer);
 		itkGetMacro(Node_Surface_liner, mitk::DataNode::Pointer);
 		itkGetMacro(Node_Surface_cupFrame, mitk::DataNode::Pointer);
-		itkGetMacro(Node_Pset_cupCenter, mitk::DataNode::Pointer);
 
 		/*
 		 * Move all the data components except for the cupFrame
@@ -76,15 +77,6 @@ namespace lancet
 		// Create an internal frame
 		void CreateInternalFrame();
 
-		// set cup surface and apply the group geometry
-		void SetCupSurface(mitk::Surface::Pointer cupSurface);
-		// set liner surface and apply the group geometry
-		void SetLinerSurface(mitk::Surface::Pointer linerSurface);
-
-		void SetPsetCupCenter(mitk::PointSet::Pointer cupCenterPset);
-
-		itkSetMacro(Surface_cupFrame, mitk::Surface::Pointer);
-
 		// operation side: right(0), left(1)
 		int m_OperationSide{0};
 
@@ -104,9 +96,7 @@ namespace lancet
 		mitk::DataNode::Pointer m_Node_Surface_liner;
 		mitk::DataNode::Pointer m_Node_Surface_cupFrame;
 
-		//cup center
-		mitk::DataNode::Pointer m_Node_Pset_cupCenter;
-		mitk::PointSet::Pointer m_Pset_cupCenter;
+
 	};
 }
 
