@@ -230,6 +230,9 @@ protected:
   MR::Mesh m_Red_mesh;
   MR::Mesh m_Cutter_mesh;
 
+  // fit test
+  void on_pushButton_fitsphere_clicked();
+
 };
 
 #endif // MoveData_h

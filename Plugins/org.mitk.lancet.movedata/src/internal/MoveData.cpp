@@ -236,6 +236,8 @@ void MoveData::CreateQtPartControl(QWidget *parent)
 
   connect(m_Controls.pushButton_generateReamer, &QPushButton::clicked, this, &MoveData::on_pushButton_generateReamer_clicked);
 
+  connect(m_Controls.pushButton_fit, &QPushButton::clicked, this, &MoveData::on_pushButton_fitsphere_clicked);
+
 }
 
 void MoveData::on_pushButton_cutInitV5_clicked()
@@ -7118,4 +7120,69 @@ void MoveData::on_pushButton_testCPR_clicked()
 	GetDataStorage()->Add(tmpNode_);
 
 	
+}
+
+
+
+void MoveData::on_pushButton_fitsphere_clicked() 
+{
+	// fit_sphere
+	// std::vector<std::string> HeadNames = { "head_28_surface", "head_32_surface", "head_36_surface" };
+	// std::vector<std::string> HeadPointNames = { "head_28_COR", "head_32_COR", "head_36_COR" };
+
+	std::vector<std::string> HeadNames = 
+	{   
+		"head-28-12.14L_surface", "head-28-12.14M_surface", "head-28-12.14S_surface",
+		"head-32-12.14L_surface", "head-32-12.14M_surface", "head-32-12.14S_surface", "head-32-12.14XL_surface",
+		"head-36-12.14L_surface", "head-36-12.14M_surface", "head-36-12.14S_surface", "head-36-12.14XL_surface",
+	};
+
+	//std::vector<std::string> HeadNames =
+	//{ 
+	//	"head-28-12.14L_COR", "head-28-12.14M_COR", "head-28-12.14S_COR",
+	//	"head-32-12.14L_COR", "head-32-12.14M_COR", "head-32-12.14S_COR", "head-32-12.14XL_COR",
+	//	"head-36-12.14L_COR", "head-36-12.14M_COR", "head-36-12.14S_COR", "head-36-12.14XL_COR",
+	//};
+	for (int i = 0; i < 11; i++) {
+		// get i-th headSurfaceNodes in index
+		auto headPoints = GetDataStorage()->GetNamedNode(HeadNames[i]);
+		if (!headPoints) {
+			//cout << "test 01" << endl;
+			return;
+		}
+		// get data
+		//cout << "test 02" << endl;
+		auto surfacePointSet = dynamic_cast<mitk::PointSet*>(headPoints->GetData());
+
+		//cout << "test 03" << endl;
+		std::vector<Eigen::Vector3d> femoralHeadPoints;
+		for (auto it = surfacePointSet->Begin(); it != surfacePointSet->End(); ++it) {
+			//cout << "test 04" << endl;
+			auto point = it->Value();
+			femoralHeadPoints.emplace_back(point[0], point[1], point[2]);
+		}
+		//cout << "test 05" << endl;
+		// record centers
+		std::vector<Eigen::Vector3d> centers;
+		int n = femoralHeadPoints.size();
+		// fit the center
+		Eigen::MatrixXd A(n, 4);
+		Eigen::VectorXd b(n);
+
+		//cout << "test 06" << endl;
+		for (int i = 0; i < n; ++i) {
+			const Eigen::Vector3d& p = femoralHeadPoints[i];
+			A(i, 0) = 2 * p.x();
+			A(i, 1) = 2 * p.y();
+			A(i, 2) = 2 * p.z();
+			A(i, 3) = 1;
+			b(i) = p.squaredNorm();
+		}
+
+		//cout << "test 07" << endl;
+		Eigen::Vector4d x = A.colPivHouseholderQr().solve(b);
+		Eigen::Vector3d center = x.head<3>();
+
+		cout << HeadNames[i] <<" center: " << center[0] << " " << center[1] << " " << center[2] << endl;
+	}
 }
