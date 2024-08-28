@@ -109,7 +109,7 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="currentIndex">
-       <number>4</number>
+       <number>8</number>
       </property>
       <widget class="QWidget" name="tab_5">
        <attribute name="title">
@@ -2622,7 +2622,7 @@ p, li { white-space: pre-wrap; }
          </rect>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="tab">
          <attribute name="title">
@@ -2860,6 +2860,63 @@ p, li { white-space: pre-wrap; }
           </property>
          </widget>
         </widget>
+        <widget class="QWidget" name="tab_3">
+         <attribute name="title">
+          <string>页</string>
+         </attribute>
+         <widget class="QPushButton" name="pushButton_HTO_Collect_landmark">
+          <property name="geometry">
+           <rect>
+            <x>70</x>
+            <y>100</y>
+            <width>141</width>
+            <height>41</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>胫骨粗配准点采集</string>
+          </property>
+         </widget>
+         <widget class="QPushButton" name="pushButton_HTO_Collect_lcp">
+          <property name="geometry">
+           <rect>
+            <x>70</x>
+            <y>170</y>
+            <width>141</width>
+            <height>41</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>胫骨精配准点采集</string>
+          </property>
+         </widget>
+         <widget class="QPushButton" name="pushButton_HTO_Caculate_regis">
+          <property name="geometry">
+           <rect>
+            <x>70</x>
+            <y>240</y>
+            <width>141</width>
+            <height>41</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>配准计算</string>
+          </property>
+         </widget>
+         <widget class="QPushButton" name="pushButton_HTO_init">
+          <property name="geometry">
+           <rect>
+            <x>70</x>
+            <y>20</y>
+            <width>141</width>
+            <height>41</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>配准初始化</string>
+          </property>
+         </widget>
+        </widget>
        </widget>
       </widget>
      </widget>
@@ -2882,7 +2939,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
       <property name="text">
-       <string>春立-HTO_NDI Demo Version 3.0</string>
+       <string>春立-HTO_NDI Demo Version 3.1</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_42">
@@ -2901,7 +2958,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
       <property name="text">
-       <string>Updated Date: 2024.08.23</string>
+       <string>Updated Date: 2024.08.27</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_43">

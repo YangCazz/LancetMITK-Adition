@@ -176,7 +176,11 @@ void HTONDI::CreateQT_FuncTest()
 	connect(m_Controls.pushButton_linkSurface, &QPushButton::clicked, this, &HTONDI::OnLinkSurfaceClicked);
 	
 
-
+	// 测试
+	connect(m_Controls.pushButton_HTO_init, &QPushButton::clicked, this, &HTONDI::OnInitHTOTibiaRegisClicked);
+	connect(m_Controls.pushButton_HTO_Collect_landmark, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaLandmarkClicked);
+	connect(m_Controls.pushButton_HTO_Collect_lcp, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaICPClicked);
+	connect(m_Controls.pushButton_HTO_Caculate_regis, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaRegisClicked);
 }
 
 void HTONDI::CreateQT_MoveData()
@@ -345,7 +349,6 @@ void HTONDI::CreateQT_MidPlan()
 	// 精配准 配准采点 与 配准计算
 	connect(m_Controls.getTibieICP_pushButton, &QPushButton::clicked, this, &HTONDI::OnGetTibieICPClicked);
 	connect(m_Controls.caculateTibiaICP_pushButton, &QPushButton::clicked, this, &HTONDI::OnCaculateTibiaICPClicked);
-
 
 }
 

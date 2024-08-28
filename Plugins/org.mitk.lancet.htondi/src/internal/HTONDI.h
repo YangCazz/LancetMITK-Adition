@@ -158,6 +158,18 @@ public slots:
 	// 胫骨精配准
 	bool OnGetTibieICPClicked();
 	bool OnCaculateTibiaICPClicked();
+
+	void UpdateHTOProbe();
+	void UpdateHTOSaw();
+	void UpdateHTODrill();
+
+	void OnInitHTOTibiaRegisClicked();
+	void OnInitHTOFemurRegisClicked();
+	void OnCollectHTOTibiaLandmarkClicked();
+	void OnCollectHTOFemurLandmarkClicked();
+	void OnCollectHTOTibiaICPClicked();
+
+	bool OnCollectHTOTibiaRegisClicked();
 	// =================================================================
 
 	// ========================== 术中导航 ==============================
@@ -390,6 +402,7 @@ protected:
   // =================================================================
 
   // -----------------------术中导航-----------------------------
+  
   void trackingObjectPos();
   
   
@@ -475,6 +488,33 @@ protected:
   double m_SawDistance[3] = {25.8118, 53.1507, 28.6400};
 
 
+  // 配准计算
+  vtkNew<vtkMatrix4x4> m_ObjectRfToImageMatrix_hto;
+
+  // 导航工具更新计时器
+  QTimer* m_HTOPrboeUpdateTimer{ nullptr };
+  QTimer* m_HTOSawUpdateTimer{ nullptr };
+  QTimer* m_HTODrillUpdateTimer{ nullptr };
+
+  // HTO registration optimization
+  // 胫骨近端外侧点 胫骨近端内侧点 胫骨远端外踝点 胫骨远端内踝点
+  mitk::PointSet::Pointer m_tibiaProximalLateralPoint = mitk::PointSet::New();
+  mitk::PointSet::Pointer m_tibiaProximalMedialPoint = mitk::PointSet::New();
+  mitk::PointSet::Pointer m_tibiaDistalLateralPoint = mitk::PointSet::New();
+  mitk::PointSet::Pointer m_tibiaDistalMedialPoint = mitk::PointSet::New();
+
+  mitk::PointSet::Pointer m_tibiaLandmarkPoints = mitk::PointSet::New();
+  mitk::PointSet::Pointer m_femurLandmarkPoints = mitk::PointSet::New();
+
+  mitk::PointSet::Pointer m_tibiaICPPoints = mitk::PointSet::New();
+
+  mitk::Surface::Pointer m_Surface_HTOTibiaSurface = mitk::Surface::New();
+  mitk::Surface::Pointer m_Surface_HTOFemurSurface = mitk::Surface::New();
+
+  int m_Num_TibiaLandmark = 0;
+  int m_Num_FemurLandmark = 0;
+  void CollectHTOTibiaLandmark(int index);
+  void CollectHTOFemurLandmark(int index);
   Ui::HTONDIControls m_Controls;
 };
 

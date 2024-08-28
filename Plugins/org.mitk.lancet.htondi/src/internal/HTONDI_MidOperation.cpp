@@ -575,9 +575,9 @@ bool HTONDI::OnStartStateAxialCutClicked()
 	// 计算平面的中心点为 几何中心, 将其位置移动到摆锯最前端
 	double originSaw[3]
 	{
-		(PlanePoint1[0] + PlanePoint1[0] + PlanePoint1[0]) / 3,
-		(PlanePoint1[1] + PlanePoint1[1] + PlanePoint1[1]) / 3,
-		(PlanePoint1[2] + PlanePoint1[2] + PlanePoint1[2]) / 3
+		(PlanePoint1[0] + PlanePoint2[0] + PlanePoint3[0]) / 3,
+		(PlanePoint1[1] + PlanePoint2[1] + PlanePoint3[1]) / 3,
+		(PlanePoint1[2] + PlanePoint2[2] + PlanePoint3[2]) / 3
 	};
 
 
