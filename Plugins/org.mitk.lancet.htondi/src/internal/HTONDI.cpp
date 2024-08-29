@@ -181,6 +181,7 @@ void HTONDI::CreateQT_FuncTest()
 	connect(m_Controls.pushButton_HTO_Collect_landmark, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaLandmarkClicked);
 	connect(m_Controls.pushButton_HTO_Collect_lcp, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaICPClicked);
 	connect(m_Controls.pushButton_HTO_Caculate_regis, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaRegisClicked);
+	connect(m_Controls.pushButton_Renew_Saw, &QPushButton::clicked, this, &HTONDI::RenewSaw);
 }
 
 void HTONDI::CreateQT_MoveData()
@@ -341,14 +342,17 @@ void HTONDI::CreateQT_MidPlan()
 	// 股骨粗配准
 	connect(m_Controls.caculateFemurLandmark_pushButton, &QPushButton::clicked, this, &HTONDI::OnCaculateFemurLandmarkClicked);
 
+	// 重置
+	connect(m_Controls.pushButton_HTO_initTibia, &QPushButton::clicked, this, &HTONDI::OnInitHTOTibiaRegisClicked);
+
 	// 胫骨粗配准
-	connect(m_Controls.getTibiaLandmark_pushButton, &QPushButton::clicked, this, &HTONDI::OnGetTibiaLandmarkClicked);
-	connect(m_Controls.caculateTibiaLandmark_pushButton, &QPushButton::clicked, this, &HTONDI::OnCaculateTibiaLandmarlClicked);
+	connect(m_Controls.getTibiaLandmark_pushButton, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaLandmarkClicked);
+	connect(m_Controls.caculateTibiaLandmark_pushButton, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaRegisClicked);
 	
 
 	// 精配准 配准采点 与 配准计算
-	connect(m_Controls.getTibieICP_pushButton, &QPushButton::clicked, this, &HTONDI::OnGetTibieICPClicked);
-	connect(m_Controls.caculateTibiaICP_pushButton, &QPushButton::clicked, this, &HTONDI::OnCaculateTibiaICPClicked);
+	connect(m_Controls.getTibieICP_pushButton, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaICPClicked);
+	connect(m_Controls.caculateTibiaICP_pushButton, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaRegisClicked);
 
 }
 

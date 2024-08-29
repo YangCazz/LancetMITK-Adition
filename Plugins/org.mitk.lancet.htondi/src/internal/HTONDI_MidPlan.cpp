@@ -721,6 +721,8 @@ bool HTONDI::OnCalibrateSawClicked()
 		// 将计算得到的探针尖端位置添加到 点集 中
 		m_SawPointsOnSawRF.push_back(CurrentSawPointsOnSawRF);
 
+		// 将节点添加到摆锯的landmark_probe
+		saw_image->GetLandmarks_probe()->InsertPoint(probeTipPointUnderRf);
 
 		// 打印信息
 		m_Controls.textBrowser_Action->append("Added CurrentSawPointsOnSawRF: "
@@ -741,17 +743,26 @@ bool HTONDI::OnCalibrateSawClicked()
 		};
 
 		// 计算误差
-		double SawError = sqrt(
+		double SawError01 = sqrt(
 			  pow((caculateDistance[0] - m_SawDistance[0]), 2)
 			+ pow((caculateDistance[1] - m_SawDistance[1]), 2)
 			+ pow((caculateDistance[2] - m_SawDistance[2]), 2)) / 3;
 
 		// ====== 计算新的误差Landmark ======
 
+		// Calculate T_imageToObjectRf
+		auto combinedRegistrator = mitk::SurfaceRegistration::New();
+		combinedRegistrator->SetLandmarksSrc(saw_image->GetLandmarks());
+		combinedRegistrator->SetLandmarksTarget(saw_image->GetLandmarks_probe());
+		combinedRegistrator->SetSurfaceSrc(GetDataStorage()->GetNamedObject<mitk::Surface>("Saw"));
+		combinedRegistrator->ComputeLandMarkResult();
 
+		//m_ObjectRfToImageMatrix_hto->DeepCopy(combinedRegistrator->GetResult());
+		double SawError02 = combinedRegistrator->GetavgLandmarkError();
 
+		m_Controls.textBrowser_CalibrateRes->append("Current Saw Calibrate ERROR01: " + QString::number(SawError01));
 
-		m_Controls.textBrowser_CalibrateRes->append("Current Saw Calibrate ERROR: " + QString::number(SawError));
+		m_Controls.textBrowser_CalibrateRes->append("Current Saw Calibrate ERROR02: " + QString::number(SawError02));
 	}
 
 	// 修改标定误差为landmark误差
@@ -1221,6 +1232,8 @@ bool HTONDI::OnGetTibiaLandmarkClicked()
 	需要与术前规划特征点采集的方法一致
 	====== 修正0826 ======
 	修改数据获取方法
+	====== 修改0828 ======
+	目前已由 OnCollectHTOTibiaLandmarkClicked() 函数替换
 	*/
 	m_Controls.textBrowser_Action->append("Action: Get Tibia Landmark.");
 
@@ -1309,6 +1322,9 @@ bool HTONDI::OnCaculateTibiaLandmarlClicked()
 
 	====== 修改0827 ======
 	直接计算配准矩阵，不再进行图像更新
+
+	====== 修改0828 ======
+	目前已由 OnCollectHTOTibiaRegisClicked 函数集成
 	*/
 	m_Controls.textBrowser_Action->append("Action: Caculate Tibia Landmark.");
 
@@ -1425,6 +1441,9 @@ bool HTONDI::OnGetTibieICPClicked()
 	1. 表面采点
 
 	=========已验证0814===========
+
+	====== 修改0828 ======
+	目前已由 OnCollectHTOTibiaICPClicked 函数替换
 	*/
 	m_Controls.textBrowser_Action->append("Action: Get Tibie ICP.");
 
@@ -1478,6 +1497,9 @@ bool HTONDI::OnCaculateTibiaICPClicked()
 
 	====== 修改0827 ======
 	修改配准计算的逻辑
+
+	====== 修改0828 ======
+	目前已经由 OnCollectHTOTibiaRegisClicked 替换
 	*/
 	m_Controls.textBrowser_Action->append("Action: Caculate Tibia ICP.");
 
@@ -1614,113 +1636,10 @@ bool HTONDI::OnCaculateTibiaICPClicked()
 	return true;
 }
 
-void HTONDI::UpdateHTODrill()
-{
-	cout << "test 01" << endl;
-	if (GetDataStorage()->GetNamedNode("Probe_forVisual") == nullptr)
-	{
-		cout << "test 02-No Probe_forVisual" << endl;
-		return;
-	}
-	auto probeIndex = m_VegaToolStorage->GetToolIndexByName("ProbeRF");
-	auto objectRfIndex = m_VegaToolStorage->GetToolIndexByName("TibiaRF");
-
-	if (probeIndex == -1 || objectRfIndex == -1)
-	{
-		m_Controls.textBrowser_Action->append("There is no 'ProbeRF' or 'TibiaRF' in the toolStorage!");
-		return;
-	}
-
-	cout << "test 03" << endl;
-
-	// Check the availability of the optic tools in the FOV
-	mitk::NavigationData::Pointer nd_ndiToProbe = m_VegaSource->GetOutput(probeIndex);
-	mitk::NavigationData::Pointer nd_ndiToObjectRf = m_VegaSource->GetOutput(objectRfIndex);
-
-	if (nd_ndiToObjectRf->IsDataValid() == 0 || nd_ndiToProbe->IsDataValid() == 0)
-	{
-		return;
-	}
-
-	cout << "test 04" << endl;
-	mitk::NavigationData::Pointer nd_rfToProbe = GetNavigationDataInRef(nd_ndiToProbe, nd_ndiToObjectRf);
-
-	cout << "test 05" << endl;
-	vtkNew<vtkMatrix4x4> vtkMatrix_rfToProbe;
-	mitk::TransferItkTransformToVtkMatrix(nd_rfToProbe->GetAffineTransform3D().GetPointer(), vtkMatrix_rfToProbe);
-
-	cout << "test 06" << endl;
-	vtkNew<vtkMatrix4x4> imageToRfMatrix;
-	imageToRfMatrix->DeepCopy(m_ObjectRfToImageMatrix_hto);
-	imageToRfMatrix->Invert();
-
-	cout << "test 07" << endl;
-	vtkNew<vtkTransform> tmpTrans;
-	tmpTrans->PostMultiply();
-	tmpTrans->SetMatrix(vtkMatrix_rfToProbe);
-	tmpTrans->Concatenate(imageToRfMatrix);
-	tmpTrans->Update();
-
-	cout << "test 08" << endl;
-	GetDataStorage()->GetNamedNode("Probe_forVisual")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
-	GetDataStorage()->GetNamedNode("Probe_forVisual")->GetData()->GetGeometry()->Modified();
-}
-
-void HTONDI::UpdateHTOSaw()
-{
-	cout << "test 01" << endl;
-	if (GetDataStorage()->GetNamedNode("Probe_forVisual") == nullptr)
-	{
-		cout << "test 02-No Probe_forVisual" << endl;
-		return;
-	}
-	auto probeIndex = m_VegaToolStorage->GetToolIndexByName("ProbeRF");
-	auto objectRfIndex = m_VegaToolStorage->GetToolIndexByName("TibiaRF");
-
-	if (probeIndex == -1 || objectRfIndex == -1)
-	{
-		m_Controls.textBrowser_Action->append("There is no 'ProbeRF' or 'TibiaRF' in the toolStorage!");
-		return;
-	}
-
-	cout << "test 03" << endl;
-
-	// Check the availability of the optic tools in the FOV
-	mitk::NavigationData::Pointer nd_ndiToProbe = m_VegaSource->GetOutput(probeIndex);
-	mitk::NavigationData::Pointer nd_ndiToObjectRf = m_VegaSource->GetOutput(objectRfIndex);
-
-	if (nd_ndiToObjectRf->IsDataValid() == 0 || nd_ndiToProbe->IsDataValid() == 0)
-	{
-		return;
-	}
-
-	cout << "test 04" << endl;
-	mitk::NavigationData::Pointer nd_rfToProbe = GetNavigationDataInRef(nd_ndiToProbe, nd_ndiToObjectRf);
-
-	cout << "test 05" << endl;
-	vtkNew<vtkMatrix4x4> vtkMatrix_rfToProbe;
-	mitk::TransferItkTransformToVtkMatrix(nd_rfToProbe->GetAffineTransform3D().GetPointer(), vtkMatrix_rfToProbe);
-
-	cout << "test 06" << endl;
-	vtkNew<vtkMatrix4x4> imageToRfMatrix;
-	imageToRfMatrix->DeepCopy(m_ObjectRfToImageMatrix_hto);
-	imageToRfMatrix->Invert();
-
-	cout << "test 07" << endl;
-	vtkNew<vtkTransform> tmpTrans;
-	tmpTrans->PostMultiply();
-	tmpTrans->SetMatrix(vtkMatrix_rfToProbe);
-	tmpTrans->Concatenate(imageToRfMatrix);
-	tmpTrans->Update();
-
-	cout << "test 08" << endl;
-	GetDataStorage()->GetNamedNode("Probe_forVisual")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
-	GetDataStorage()->GetNamedNode("Probe_forVisual")->GetData()->GetGeometry()->Modified();
-}
 
 void HTONDI::UpdateHTOProbe()
 {
-	cout << "test 01" << endl;
+	cout << "test probe 01" << endl;
 	if (GetDataStorage()->GetNamedNode("Probe_forVisual") == nullptr)
 	{
 		cout << "test 02-No Probe_forVisual" << endl;
@@ -1735,7 +1654,7 @@ void HTONDI::UpdateHTOProbe()
 		return;
 	}
 
-	cout << "test 03" << endl;
+	cout << "test probe 03" << endl;
 
 	// Check the availability of the optic tools in the FOV
 	mitk::NavigationData::Pointer nd_ndiToProbe = m_VegaSource->GetOutput(probeIndex);
@@ -1746,28 +1665,30 @@ void HTONDI::UpdateHTOProbe()
 		return;
 	}
 
-	cout << "test 04" << endl;
+	cout << "test probe 04" << endl;
 	mitk::NavigationData::Pointer nd_rfToProbe = GetNavigationDataInRef(nd_ndiToProbe, nd_ndiToObjectRf);
 
-	cout << "test 05" << endl;
+	cout << "test probe 05" << endl;
 	vtkNew<vtkMatrix4x4> vtkMatrix_rfToProbe;
 	mitk::TransferItkTransformToVtkMatrix(nd_rfToProbe->GetAffineTransform3D().GetPointer(), vtkMatrix_rfToProbe);
 
-	cout << "test 06" << endl;
+	cout << "test probe 06" << endl;
 	vtkNew<vtkMatrix4x4> imageToRfMatrix;
 	imageToRfMatrix->DeepCopy(m_ObjectRfToImageMatrix_hto);
 	imageToRfMatrix->Invert();
 
-	cout << "test 07" << endl;
+	cout << "test probe 07" << endl;
 	vtkNew<vtkTransform> tmpTrans;
 	tmpTrans->PostMultiply();
 	tmpTrans->SetMatrix(vtkMatrix_rfToProbe);
 	tmpTrans->Concatenate(imageToRfMatrix);
 	tmpTrans->Update();
 
-	cout << "test 08" << endl;
+	cout << "test probe 08" << endl;
 	GetDataStorage()->GetNamedNode("Probe_forVisual")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
 	GetDataStorage()->GetNamedNode("Probe_forVisual")->GetData()->GetGeometry()->Modified();
+
+	cout << "Current probe visulizetion done" << endl;
 }
 
 
@@ -1793,6 +1714,9 @@ void HTONDI::OnInitHTOTibiaRegisClicked()
 	// 初始化配准矩阵
 	m_ObjectRfToImageMatrix_hto->Identity();
 
+	// 初始化参数
+	m_Num_TibiaLandmark = 0;
+
 	// Set up the surface and the image landmark
 	if (GetDataStorage()->GetNamedNode("tibiaSurface") == nullptr ||
 		GetDataStorage()->GetNamedNode("tibiaLandmarkPointSet") == nullptr)
@@ -1800,6 +1724,8 @@ void HTONDI::OnInitHTOTibiaRegisClicked()
 		m_Controls.textBrowser_Action->append("tibiaSurface or tibiaLandmarkPointSet is missing");
 		return;
 	}
+
+	
 
 	// Turn off the visibility of all nodes but for the boneSurface and landmark_image
 	mitk::DataStorage::SetOfObjects::ConstPointer allNodes = GetDataStorage()->GetAll();
@@ -1810,13 +1736,16 @@ void HTONDI::OnInitHTOTibiaRegisClicked()
 		node->SetVisibility(false);
 	}
 
+	// visuliaze tibiaSurface and tibiaLandmarkPointSet
 	GetDataStorage()->GetNamedNode("tibiaSurface")->SetVisibility(true);
+	GetDataStorage()->GetNamedNode("tibiaLandmarkPointSet")->SetVisibility(true);
 
 	m_Surface_HTOTibiaSurface = GetDataStorage()->GetNamedObject<mitk::Surface>("tibiaSurface");
 	m_tibiaLandmarkPoints = GetDataStorage()->GetNamedObject<mitk::PointSet>("tibiaLandmarkPointSet");
 
 	// 显示第一个点
 	auto tibiaPoints = GetDataStorage()->GetNamedNode("tibiaLandmarkPointSet");
+
 	// 加载点
 	auto currentPoint = dynamic_cast<mitk::PointSet*>(tibiaPoints->GetData())->GetPoint(0);
 	mitk::PointSet::Pointer currentPointSet = mitk::PointSet::New();
@@ -1836,9 +1765,20 @@ void HTONDI::OnInitHTOTibiaRegisClicked()
 	currentPointSurface->SetName("currentLandmarkPoint");
 	currentPointSurface->SetProperty("color", mitk::ColorProperty::New(0.0, 0.0, 1.0)); // 设置颜色为红色
 	currentPointSurface->SetProperty("pointsize", mitk::FloatProperty::New(10.0)); // 设置点的大小为10
+
+	// 
+	// 停止追踪
+	if (m_HTOPrboeUpdateTimer != nullptr)
+	{
+		disconnect(m_HTOPrboeUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOProbe()));
+		m_HTOPrboeUpdateTimer->stop();
+		m_HTOPrboeUpdateTimer = { nullptr };
+	}
+
 	GetDataStorage()->Add(currentPointSurface);
 
-
+	m_Controls.textBrowser_TibieRes->append("tibiaRigis init");
+	
 }
 
 void HTONDI::OnInitHTOFemurRegisClicked()
@@ -1860,7 +1800,7 @@ void HTONDI::OnInitHTOFemurRegisClicked()
 	m_ObjectRfToImageMatrix_hto->Identity();
 
 	// 初始化结果
-	m_Num_TibiaLandmark = 0;
+	m_Num_FemurLandmark = 0;
 
 	// Set up the surface and the image landmark
 	if (GetDataStorage()->GetNamedNode("femurSurface") == nullptr ||
@@ -1893,7 +1833,7 @@ void HTONDI::OnInitHTOFemurRegisClicked()
 
 void HTONDI::CollectHTOTibiaLandmark(int index)
 {
-	m_Controls.textBrowser_Action->append("Action: Collect Tibia Landmark.");
+	m_Controls.textBrowser_Action->append("Action: Collect Tibia Landmark, index: " + QString::number(index));
 
 	// Check the camera prerequisites: connection & tool storage 
 	if (m_VegaToolStorage == nullptr)
@@ -1929,14 +1869,10 @@ void HTONDI::CollectHTOTibiaLandmark(int index)
 
 	// 进行胫骨节点采集
 	// 胫骨近端外侧点 胫骨近端内侧点 胫骨远端外踝点 胫骨远端内踝点
-
-	// 将节点进行展示并做引导
-	
-
 	if (index == 0)
 	{
 		m_tibiaProximalLateralPoint->InsertPoint(probeTipPointUnderRf);
-		m_Controls.textBrowser_Action->append("Added m_tibiaProximalLateralPoint: ("
+		m_Controls.textBrowser_TibieRes->append("Added m_tibiaProximalLateralPoint: ("
 			     + QString::number(probeTipPointUnderRf[0]) +
 			", " + QString::number(probeTipPointUnderRf[1]) +
 			", " + QString::number(probeTipPointUnderRf[2]) + ")"
@@ -1945,7 +1881,7 @@ void HTONDI::CollectHTOTibiaLandmark(int index)
 	else if (index == 1)
 	{
 		m_tibiaProximalMedialPoint->InsertPoint(probeTipPointUnderRf);
-		m_Controls.textBrowser_Action->append("Added m_tibiaProximalMedialPoint: ("
+		m_Controls.textBrowser_TibieRes->append("Added m_tibiaProximalMedialPoint: ("
 			     + QString::number(probeTipPointUnderRf[0]) +
 			", " + QString::number(probeTipPointUnderRf[1]) +
 			", " + QString::number(probeTipPointUnderRf[2]) + ")"
@@ -1954,7 +1890,7 @@ void HTONDI::CollectHTOTibiaLandmark(int index)
 	else if (index == 2)
 	{
 		m_tibiaDistalLateralPoint->InsertPoint(probeTipPointUnderRf);
-		m_Controls.textBrowser_Action->append("Added m_tibiaDistalLateralPoint: ("
+		m_Controls.textBrowser_TibieRes->append("Added m_tibiaDistalLateralPoint: ("
 			     + QString::number(probeTipPointUnderRf[0]) +
 			", " + QString::number(probeTipPointUnderRf[1]) +
 			", " + QString::number(probeTipPointUnderRf[2]) + ")"
@@ -1963,7 +1899,7 @@ void HTONDI::CollectHTOTibiaLandmark(int index)
 	else if (index == 3)
 	{
 		m_tibiaDistalMedialPoint->InsertPoint(probeTipPointUnderRf);
-		m_Controls.textBrowser_Action->append("Added m_tibiaDistalMedialPoint: ("
+		m_Controls.textBrowser_TibieRes->append("Added m_tibiaDistalMedialPoint: ("
 			     + QString::number(probeTipPointUnderRf[0]) +
 			", " + QString::number(probeTipPointUnderRf[1]) +
 			", " + QString::number(probeTipPointUnderRf[2]) + ")"
@@ -1971,7 +1907,7 @@ void HTONDI::CollectHTOTibiaLandmark(int index)
 	}
 	else
 	{
-		m_Controls.textBrowser_Action->append("Tibia Landmark Collect Done!");
+		m_Controls.textBrowser_TibieRes->append("Tibia Landmark Collect Done!");
 	}
 
 }
@@ -2027,44 +1963,36 @@ void HTONDI::CollectHTOFemurLandmark(int index)
 
 void HTONDI::OnCollectHTOTibiaLandmarkClicked()
 {
-	cout << "test 01" << endl;
+	m_Controls.textBrowser_Action->append("m_Num_TibiaLandmark: " + QString::number(m_Num_TibiaLandmark));
 	auto tibiaPoints = GetDataStorage()->GetNamedNode("tibiaLandmarkPointSet");
 	if (tibiaPoints)
 	{
-		cout << "test 02" << endl;
-		tibiaPoints->SetVisibility(true);
-
 		// 采集第一个点
-		cout << "test 03" << endl;
 		CollectHTOTibiaLandmark(m_Num_TibiaLandmark);
 		m_Num_TibiaLandmark += 1;
 
 		// 显示当前引导点
 		if (m_Num_TibiaLandmark < (tibia_image->GetLandmarks()->GetSize()))
 		{
-			cout << "test 03" << endl;
 			// 加载点
 			auto currentPoint = dynamic_cast<mitk::PointSet*>(tibiaPoints->GetData())->GetPoint(m_Num_TibiaLandmark);
 			mitk::PointSet::Pointer currentPointSet = mitk::PointSet::New();
 			currentPointSet->InsertPoint(currentPoint);
-			cout << "test 04" << endl;
 			// 覆盖上次的点对象
 			auto currentLandmark = GetDataStorage()->GetNamedNode("currentLandmarkPoint");
 			if (currentLandmark)
 			{
 				GetDataStorage()->Remove(currentLandmark);
 			}
-			cout << "test 05" << endl;
 			// 创建可视化对象
 			mitk::DataNode::Pointer currentPointSurface = mitk::DataNode::New();
 			// 装载数据
 			currentPointSurface->SetData(currentPointSet);
 			currentPointSurface->SetName("currentLandmarkPoint");
 			currentPointSurface->SetProperty("color", mitk::ColorProperty::New(0.0, 0.0, 1.0)); // 设置颜色为红色
-			currentPointSurface->SetProperty("pointsize", mitk::FloatProperty::New(5.0)); // 设置点的大小为5
+			currentPointSurface->SetProperty("pointsize", mitk::FloatProperty::New(10.0)); // 设置点的大小为5
 			GetDataStorage()->Add(currentPointSurface);
 		}
-		
 	}
 	else
 	{
@@ -2129,7 +2057,7 @@ void HTONDI::OnCollectHTOTibiaICPClicked()
 		if (tmpDis > disThres)
 		{
 			m_tibiaICPPoints->InsertPoint(probeTipPointUnderRf);
-			m_Controls.textBrowser_Action->append("Added CurrentTibiaICPPoint: ("
+			m_Controls.textBrowser_TibieRes->append("Added CurrentTibiaICPPoint: ("
 				+ QString::number(probeTipPointUnderRf[0]) +
 				", " + QString::number(probeTipPointUnderRf[1]) +
 				", " + QString::number(probeTipPointUnderRf[2]) + ")"
@@ -2137,13 +2065,11 @@ void HTONDI::OnCollectHTOTibiaICPClicked()
 		}
 		else
 		{
-			m_Controls.textBrowser->append("Current ICP point is too close to the previous one");
+			m_Controls.textBrowser_Action->append("Current ICP point is too close to the previous one");
 		}
 	}
 
 }
-
-
 
 
 bool HTONDI::OnCollectHTOTibiaRegisClicked()
@@ -2160,6 +2086,7 @@ bool HTONDI::OnCollectHTOTibiaRegisClicked()
 		m_tibiaDistalMedialPoint->GetSize() < 1 ||
 		m_Surface_HTOTibiaSurface->GetVtkPolyData() == nullptr)
 	{
+		m_Controls.textBrowser_Action->append("not enough points");
 		return false;
 	}
 

@@ -15,6 +15,15 @@ All rights reserved.
 #include <QTimer>
 #include <QtCore\qmath.h>
 
+// mitk
+#include <mitkAffineTransform3D.h>
+#include <mitkMatrixConvert.h>
+#include "mitkTrackingTool.h"
+#include "surfaceregistraion.h"
+
+// lancet
+#include <lancetRobotTrackingTool.h>
+
 // vtk
 #include <vtkPlane.h>
 #include <vtkPlaneSource.h>
@@ -28,9 +37,336 @@ HTONDI_MidOperation.cpp
 ===============================================================*/
 
 
+void HTONDI::UpdateHTODrill()
+{
+	cout << "test drill 01" << endl;
+	if (GetDataStorage()->GetNamedNode("Drill") == nullptr)
+	{
+		cout << "test drill 02-No Drill" << endl;
+		return;
+	}
+	auto drillIndex = m_VegaToolStorage->GetToolIndexByName("DrillRF");
+	auto objectRfIndex = m_VegaToolStorage->GetToolIndexByName("TibiaRF");
+
+	if (drillIndex == -1 || objectRfIndex == -1)
+	{
+		m_Controls.textBrowser_Action->append("There is no 'DrillRF' or 'TibiaRF' in the toolStorage!");
+		return;
+	}
+
+	cout << "test drill 03" << endl;
+
+	// Get T_Camera_To_DrillRF
+	mitk::NavigationData::Pointer nd_ndiToProbe = m_VegaSource->GetOutput(drillIndex);
+	// Get T_Camera_To_TibiaRF
+	mitk::NavigationData::Pointer nd_ndiToObjectRf = m_VegaSource->GetOutput(objectRfIndex);
+
+	if (nd_ndiToObjectRf->IsDataValid() == 0 || nd_ndiToProbe->IsDataValid() == 0)
+	{
+		return;
+	}
+
+	cout << "test drill 04" << endl;
+	// Get T_TibiaRF_To_DrillRF
+	mitk::NavigationData::Pointer nd_rfToProbe = GetNavigationDataInRef(nd_ndiToProbe, nd_ndiToObjectRf);
+
+	cout << "test drill 05" << endl;
+	// Get N_DrillRF_Under_TibiaRF
+	
+	vtkNew<vtkMatrix4x4> vtkMatrix_rfToProbe;
+	mitk::TransferItkTransformToVtkMatrix(nd_rfToProbe->GetAffineTransform3D().GetPointer(), vtkMatrix_rfToProbe);
+
+	cout << "test drill 06" << endl;
+	// Get T_TibiaRF_To_Image
+	vtkNew<vtkMatrix4x4> imageToRfMatrix;
+	imageToRfMatrix->DeepCopy(m_ObjectRfToImageMatrix_hto);
+	imageToRfMatrix->Invert();
+
+	cout << "test drill 07" << endl;
+	// Get T_Image_To_DrillRF
+	// T_TibiaRF_To_Image.inverse() * T_TibiaRF_To_DrillRF = T_Image_To_DrillRF
+	vtkNew<vtkTransform> tmpTrans;
+	tmpTrans->PostMultiply();
+	tmpTrans->SetMatrix(vtkMatrix_rfToProbe);
+	tmpTrans->Concatenate(imageToRfMatrix);
+	tmpTrans->Update();
+
+	// 以上计算出了磨钻表面的投影关系，但是初始加载的摆锯表面位置却不一定正确，需要修正
+	if (start_drill == false)
+	{	
+		/* 在初始情况下，landmark点的位置是实际位置，这个时候可以借助这个点集来计算 */
+		// 将T_Image_To_DrillRF转化为Eigen::Matrix4d格式
+		cout << "test drill 08-01" << endl;
+		Eigen::Matrix4d T_Image_To_DrillRF;
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				T_Image_To_DrillRF(i, j) = tmpTrans->GetMatrix()->GetElement(i, j);
+			}
+		}
+
+		// 将m_DrillPointsOnDrillRF转化为矩阵 [4,n]
+		Eigen::Matrix4Xd m_DrillPointsOnDrillRF4d(4, m_DrillPointsOnDrillRF.size());
+		for (int i = 0; i < m_DrillPointsOnDrillRF.size(); i++) {
+			m_DrillPointsOnDrillRF4d.col(i) = m_DrillPointsOnDrillRF[i];
+		}
+
+		// 计算current位置
+		Eigen::Matrix4Xd N_TP_Under_Image_Recent = T_Image_To_DrillRF * m_DrillPointsOnDrillRF4d;
+
+		// 取出last位置
+		// 取出landmark点同样转化为矩阵 [4,n]
+		auto pointSet_landmark = drill_image->GetLandmarks();
+		Eigen::Matrix4Xd N_TP_Under_Image_Last(4, pointSet_landmark->GetSize());
+		for (int i = 0; i < pointSet_landmark->GetSize(); i++) {
+			N_TP_Under_Image_Last(0, i) = pointSet_landmark->GetPoint(i)[0];
+			N_TP_Under_Image_Last(1, i) = pointSet_landmark->GetPoint(i)[1];
+			N_TP_Under_Image_Last(2, i) = pointSet_landmark->GetPoint(i)[2];
+			N_TP_Under_Image_Last(3, i) = 1;
+		}
+
+		// 计算转化矩阵T_Current
+		Eigen::Matrix4Xd T_Current = N_TP_Under_Image_Recent * N_TP_Under_Image_Last.inverse();
+		
+		// T_Current转化回 vtkMatrix4x4
+		vtkNew<vtkMatrix4x4> T_Current_vtk;
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < T_Current.cols(); j++) {
+				T_Current_vtk->SetElement(i, j, T_Current(i, j));
+			}
+		}
+
+		// 将其应用到初始位置上
+		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
+		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->Modified();
+
+		// 更新标准位
+		start_drill = true;
+	}
+	else if (start_drill == true)
+	{
+		cout << "test drill 08-02" << endl;
+		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
+		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->Modified();
+	}
+}
+
+void HTONDI::UpdateHTOSaw()
+{
+	cout << "test Saw 01" << endl;
+	if (GetDataStorage()->GetNamedNode("Saw") == nullptr)
+	{
+		cout << "test Saw 02-No Saw" << endl;
+		return;
+	}
+	auto probeIndex = m_VegaToolStorage->GetToolIndexByName("SawRF");
+	auto objectRfIndex = m_VegaToolStorage->GetToolIndexByName("TibiaRF");
+
+	if (probeIndex == -1 || objectRfIndex == -1)
+	{
+		m_Controls.textBrowser_Action->append("There is no 'SawRF' or 'TibiaRF' in the toolStorage!");
+		return;
+	}
+
+	cout << "test Saw 03" << endl;
+
+	// Check the availability of the optic tools in the FOV
+	mitk::NavigationData::Pointer nd_ndiToProbe = m_VegaSource->GetOutput(probeIndex);
+	mitk::NavigationData::Pointer nd_ndiToObjectRf = m_VegaSource->GetOutput(objectRfIndex);
+
+	if (nd_ndiToObjectRf->IsDataValid() == 0 || nd_ndiToProbe->IsDataValid() == 0)
+	{
+		return;
+	}
+
+	cout << "test Saw 04" << endl;
+	mitk::NavigationData::Pointer nd_rfToProbe = GetNavigationDataInRef(nd_ndiToProbe, nd_ndiToObjectRf);
+
+	cout << "test Saw 05" << endl;
+	vtkNew<vtkMatrix4x4> vtkMatrix_rfToProbe;
+	mitk::TransferItkTransformToVtkMatrix(nd_rfToProbe->GetAffineTransform3D().GetPointer(), vtkMatrix_rfToProbe);
+
+	cout << "test Saw 06" << endl;
+	vtkNew<vtkMatrix4x4> imageToRfMatrix;
+	imageToRfMatrix->DeepCopy(m_ObjectRfToImageMatrix_hto);
+	imageToRfMatrix->Invert();
+
+	cout << "test Saw 07" << endl;
+	vtkNew<vtkTransform> tmpTrans;
+	tmpTrans->PostMultiply();
+	tmpTrans->SetMatrix(vtkMatrix_rfToProbe);
+	tmpTrans->Concatenate(imageToRfMatrix);
+	tmpTrans->Update();
+
+	if (start_saw == false)
+	{
+		/* 在初始情况下，landmark点的位置是实际位置，这个时候可以借助这个点集来计算 */
+		// 将T_Image_To_SawRF转化为Eigen::Matrix4d格式
+		cout << "test Saw 08-01" << endl;
+		Eigen::Matrix4d T_Image_To_SawRF;
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				T_Image_To_SawRF(i, j) = tmpTrans->GetMatrix()->GetElement(i, j);
+			}
+		}
+
+		// 将m_DrillPointsOnDrillRF转化为矩阵 [4,n]
+		Eigen::Matrix4Xd m_SawPointsOnSawRF4d(4, m_SawPointsOnSawRF.size());
+		for (int i = 0; i < m_SawPointsOnSawRF.size(); i++) {
+			m_SawPointsOnSawRF4d.col(i) = m_SawPointsOnSawRF[i];
+		}
+
+		// 计算current位置
+		Eigen::Matrix4Xd N_TP_Under_Image_Recent = T_Image_To_SawRF * m_SawPointsOnSawRF4d;
+
+		// 取出last位置
+		// 取出landmark点同样转化为矩阵 [4,n]
+		auto pointSet_landmark = saw_image->GetLandmarks();
+		Eigen::Matrix4Xd N_TP_Under_Image_Last(4, pointSet_landmark->GetSize());
+		for (int i = 0; i < pointSet_landmark->GetSize(); i++) {
+			N_TP_Under_Image_Last(0, i) = pointSet_landmark->GetPoint(i)[0];
+			N_TP_Under_Image_Last(1, i) = pointSet_landmark->GetPoint(i)[1];
+			N_TP_Under_Image_Last(2, i) = pointSet_landmark->GetPoint(i)[2];
+			N_TP_Under_Image_Last(3, i) = 1;
+		}
+
+		// 计算转化矩阵T_Current
+		Eigen::Matrix4Xd T_Current = N_TP_Under_Image_Recent * N_TP_Under_Image_Last.inverse();
+
+		// T_Current转化回 vtkMatrix4x4
+		vtkNew<vtkMatrix4x4> T_Current_vtk;
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < T_Current.cols(); j++) {
+				T_Current_vtk->SetElement(i, j, T_Current(i, j));
+			}
+		}
+
+		/* 方法二: 将当前映射后的点 N_SP_Under_Camera_current 与  N_SP_Under_Camera_last 的配准矩阵 T_Current2Last */
+		// 首先将当前点的位置投影到Image中 N_SP_Under_Camera_current = T_Image2SawRF * N_SP_Under_SawRF
+		
+		auto landmark_rf = mitk::PointSet::New();
+		// 打印当前点的信息
+		for (int i = 0; i < saw_image->GetLandmarks()->GetSize(); i++)
+		{
+			Eigen::VectorXd columnData = N_TP_Under_Image_Recent.col(i);
+			mitk::Point3D point;
+			point[0] = columnData[0];
+			point[1] = columnData[1];
+			point[2] = columnData[2];
+			landmark_rf->InsertPoint(point);
+		}
+
+
+		auto Current2Last_Registrator = mitk::SurfaceRegistration::New();
+		Current2Last_Registrator->SetLandmarksSrc(saw_image->GetLandmarks());
+		Current2Last_Registrator->SetLandmarksTarget(landmark_rf);
+		Current2Last_Registrator->ComputeLandMarkResult();
+
+		// 提取T_Current2Last
+		vtkNew<vtkMatrix4x4> T_Current2Last;
+		T_Current2Last->DeepCopy(Current2Last_Registrator->GetResult());
+
+		// 首先将Last转化为Current
+		GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current2Last);
+
+		// 然后将Current进行映射
+		// GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
+		GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->Modified();
+
+		// 更新标准位
+		start_saw = true;
+
+		cout << "saw init done" << endl;
+	}
+	else if (start_saw == true)
+	{
+		cout << "test Saw 08-02" << endl;
+		GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
+		GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->Modified();
+	}
 
 
 
+	//// 截骨面生成，首先计算法向量
+	//auto sawLandmark = saw_image->GetLandmarks();
+	//mitk::Point3D point0 = sawLandmark->GetPoint(0);
+	//mitk::Point3D point1 = sawLandmark->GetPoint(1);
+	//mitk::Point3D point2 = sawLandmark->GetPoint(2);
+
+	//m_Controls.textBrowser_Action->append("Current Saw Point0: ("
+	//	+ QString::number(point0[0]) +
+	//	", " + QString::number(point0[1]) +
+	//	", " + QString::number(point0[2]) + ")"
+	//);
+	//m_Controls.textBrowser_Action->append("Current Saw Point1: ("
+	//	+ QString::number(point1[0]) +
+	//	", " + QString::number(point1[1]) +
+	//	", " + QString::number(point1[2]) + ")"
+	//);
+	//m_Controls.textBrowser_Action->append("Current Saw Point2: ("
+	//	+ QString::number(point2[0]) +
+	//	", " + QString::number(point2[1]) +
+	//	", " + QString::number(point2[2]) + ")"
+	//);
+
+}
+
+bool HTONDI::OnStartAxialGuideClicked()
+{
+	/* 开始水平截骨导航
+	1. 生成实时截骨面
+	2. 计算 实时截骨面 与 规划截骨面 的夹角
+
+	开始水平截骨导航时，需要计算截骨面的法向量和前端位置
+	那么，也就需要知道实时的摆锯最前端的截骨面点以及对应的截骨面法向量
+
+	====== 修改0828 ======
+	修改导航算法
+	*/
+
+	m_Controls.textBrowser_Action->append("Action: Start Axial Cut Guide.");
+	m_cutType = 1;
+
+	// 1. 显示规划的截骨面 + 显示实时截骨面位置
+	auto preCutPlane01 = GetDataStorage()->GetNamedNode("1st cut plane");
+	auto realTimeSaw = GetDataStorage()->GetNamedNode("Saw");
+
+	// 检测数据存在，然后打开截骨导航
+	if (preCutPlane01 && realTimeSaw)
+	{
+		preCutPlane01->SetVisibility(true);
+		realTimeSaw->SetVisibility(true);
+	}
+	else
+	{
+		m_Controls.textBrowser_Action->append("Cut plane or Saw model Not Found!");
+		return false;
+	}
+
+	// 对Saw生成实时截骨平面
+	if (m_HTOSawUpdateTimer == nullptr)
+	{
+		m_HTOSawUpdateTimer = new QTimer(this);
+	}
+	m_Controls.textBrowser_Action->append("Generate Real time Cut plane");
+	
+	// 先终止探针的识别
+	//m_HTOPrboeUpdateTimer->stop();
+	//cout << "stop probe visulization" << endl;
+	
+	// 先运行一次，更新到目标位置上来
+	UpdateHTOSaw();
+
+	disconnect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw()));
+	connect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw()));
+	m_HTOSawUpdateTimer->start(100);
+
+	return true;
+}
+
+void HTONDI::RenewSaw()
+{
+	UpdateHTOSaw();
+}
 
 // 术中导航
 void HTONDI::trackingObjectPos()
@@ -459,45 +795,7 @@ void HTONDI::CalculateRealTimeCutAngle()
 }
 
 
-bool HTONDI::OnStartAxialGuideClicked()
-{
-	/* 开始水平截骨导航
-	1. 生成实时截骨面
-	2. 计算 实时截骨面 与 规划截骨面 的夹角
 
-	开始水平截骨导航时，需要计算截骨面的法向量和前端位置
-	那么，也就需要知道实时的摆锯最前端的截骨面点以及对应的截骨面法向量
-	*/
-
-	m_Controls.textBrowser_Action->append("Action: Start Axial Cut Guide.");
-
-	// 1. 显示规划的截骨面 + 显示实时截骨面位置
-	auto preCutPlane01 = GetDataStorage()->GetNamedNode("1st cut plane");
-	auto realTimeSaw = GetDataStorage()->GetNamedNode("Saw");
-
-	// 检测数据存在，然后打开截骨导航
-	if (preCutPlane01 && realTimeSaw)
-	{
-		preCutPlane01->SetVisibility(true);
-		realTimeSaw->SetVisibility(true);
-	}
-	else
-	{
-		m_Controls.textBrowser_Action->append("Cut plane or Saw model Not Found!");
-		return false;
-	}
-
-	// 对Saw生成实时截骨平面
-	if (m_timer_saw == nullptr)
-	{
-		m_timer_saw = new QTimer(this);
-	}
-	m_Controls.textBrowser_Action->append("Generate Real time Cut plane");
-	connect(m_timer_saw, SIGNAL(timeout()), this, SLOT(GenerateRealTimeBoneSurface()));
-	m_timer_saw->start(100);
-
-	return true;
-}
 
 bool HTONDI::OnStartAxialCutClicked()
 {
@@ -779,7 +1077,38 @@ bool HTONDI::OnStartSagGuideClicked()
 {
 	/* 确定水平截骨面位置	*/
 	m_Controls.textBrowser_Action->append("Action: Check State Cut Plane.");
-	m_cutType = -1;
+	m_cutType = 2;
+
+	// 1. 显示规划的截骨面 + 显示实时截骨面位置
+	auto preCutPlane01 = GetDataStorage()->GetNamedNode("2nd cut plane");
+	auto realTimeSaw = GetDataStorage()->GetNamedNode("Saw");
+
+	// 检测数据存在，然后打开截骨导航
+	if (preCutPlane01 && realTimeSaw)
+	{
+		preCutPlane01->SetVisibility(true);
+		realTimeSaw->SetVisibility(true);
+	}
+	else
+	{
+		m_Controls.textBrowser_Action->append("Cut plane or Saw model Not Found!");
+		return false;
+	}
+
+	// 对Saw生成实时截骨平面
+	if (m_HTOSawUpdateTimer == nullptr)
+	{
+		m_HTOSawUpdateTimer = new QTimer(this);
+	}
+	m_Controls.textBrowser_Action->append("Generate Real time Cut plane");
+
+	disconnect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw()));
+	connect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw()));
+	m_HTOSawUpdateTimer->start(100);
+
+
+
+
 	return true;
 }
 
@@ -1028,12 +1357,37 @@ bool HTONDI::OnStartSagCutClicked()
 
 bool HTONDI::OnStartDrillGuideClicked()
 {
-	/* 开始钻孔导航
+	/* 开始磨钻导航
 	1. 生成实时磨钻位置
 	2. 计算 实时钻孔位置 和 规划钻孔位置 差距
 	*/
 
 	m_Controls.textBrowser_Action->append("Action: Check Drill Node.");
+
+	// 1. 显示规划的截骨面 + 显示实时截骨面位置
+	auto realTimeDrill = GetDataStorage()->GetNamedNode("Drill");
+
+	// 检测数据存在，然后打开截骨导航
+	if (realTimeDrill)
+	{
+		realTimeDrill->SetVisibility(true);
+	}
+	else
+	{
+		m_Controls.textBrowser_Action->append("Cut Drill model Not Found!");
+		return false;
+	}
+
+	// 对Drill生成实时磨钻圆柱体
+	if (m_HTODrillUpdateTimer == nullptr)
+	{
+		m_HTODrillUpdateTimer = new QTimer(this);
+	}
+	m_Controls.textBrowser_Action->append("Generate Real time Drill");
+
+	disconnect(m_HTODrillUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTODrill()));
+	connect(m_HTODrillUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTODrill()));
+	m_HTODrillUpdateTimer->start(100);
 
 	return true;
 }

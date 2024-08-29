@@ -77,6 +77,8 @@ public slots:
 	
 	// 绑定图像
 	bool OnLinkSurfaceClicked();
+
+	void RenewSaw();
 	
 	// =================================================================
 
@@ -159,16 +161,23 @@ public slots:
 	bool OnGetTibieICPClicked();
 	bool OnCaculateTibiaICPClicked();
 
+	// 探针跟踪
 	void UpdateHTOProbe();
-	void UpdateHTOSaw();
-	void UpdateHTODrill();
 
+	// 参数初始化
 	void OnInitHTOTibiaRegisClicked();
 	void OnInitHTOFemurRegisClicked();
+
+	// 胫骨粗配准采集
 	void OnCollectHTOTibiaLandmarkClicked();
+
+	// 股骨粗配准采集
 	void OnCollectHTOFemurLandmarkClicked();
+
+	// 胫骨精配准采集
 	void OnCollectHTOTibiaICPClicked();
 
+	// 胫骨配准计算
 	bool OnCollectHTOTibiaRegisClicked();
 	// =================================================================
 
@@ -188,6 +197,9 @@ public slots:
 	bool OnStartDrillGuideClicked();
 	bool OnStartDrillHoleClicked();
 	bool OnStartStateDrillHoleClicked();
+
+	void UpdateHTOSaw();
+	void UpdateHTODrill();
 	// =================================================================
 	
 	// ========================== 术后验证 ==============================
@@ -515,6 +527,12 @@ protected:
   int m_Num_FemurLandmark = 0;
   void CollectHTOTibiaLandmark(int index);
   void CollectHTOFemurLandmark(int index);
+
+  bool start_drill = false;
+  bool start_saw = false;
+  
+  
+
   Ui::HTONDIControls m_Controls;
 };
 
