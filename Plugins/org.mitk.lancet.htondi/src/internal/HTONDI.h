@@ -450,6 +450,9 @@ protected:
   std::vector<mitk::Point3D> m_PointsOnSaw;
   std::vector<mitk::Point3D> CalculateActualPoints(const std::vector<mitk::Point3D>& relativePoints, const Eigen::Vector3d& normalVector, const Eigen::Vector3d& origin);
 
+  // 计算实时水平截骨线
+  bool GetRealTimeIntersectionLine(const std::string& cutPlaneName, const std::string& surfaceName);
+  void RealTimeTraverseIntersectionLines(vtkSmartPointer<vtkPolyData> intersectionLine, double pos_min[3], double pos_max[3]);
   // =================================================================
   // 定义-股骨标记点在股骨RF下的位置
   Eigen::Vector4d m_FemurCheckPointOnFemurRF;
@@ -531,7 +534,25 @@ protected:
   bool start_drill = false;
   bool start_saw = false;
   
+  bool m_RealtimeAngleCheck = false;
+  // 计算初始化截骨面的截骨线
+  bool m_RealtimeCutCheck = false;
+  bool m_RealtimeCutPlaneCheck = false;
   
+
+  double m_CutIntersectionMinPos[3];
+  double m_CutIntersectionMaxPos[3];
+
+  //计算点到直线的距离
+  double DistancePointToLine(double pointA[3], double pointB[3], double pointC[3]);
+
+  // 设置截骨阈值
+  double m_threshold_SawDepth = 5.0;
+  double m_threshold_DrillDepth = 5.0;
+
+  // 摆锯电源状态控制
+  bool m_SawPower = false;
+  bool m_DrillPower = false;
 
   Ui::HTONDIControls m_Controls;
 };

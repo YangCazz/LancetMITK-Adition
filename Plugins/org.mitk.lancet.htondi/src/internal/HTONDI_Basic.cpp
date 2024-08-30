@@ -641,3 +641,26 @@ std::vector<mitk::Point3D> HTONDI::CalculateActualPoints(const std::vector<mitk:
 	}
 	return actualPoints;
 }
+
+double HTONDI::DistancePointToLine(double pointA[3], double pointB[3], double pointC[3])
+{
+	// 计算直线AB的向量
+	double vectorAB[3] = { pointB[0] - pointA[0], pointB[1] - pointA[1], pointB[2] - pointA[2] };
+
+	// 计算AC向量
+	double vectorAC[3] = { pointC[0] - pointA[0], pointC[1] - pointA[1], pointC[2] - pointA[2] };
+
+	// 计算投影向量
+	double projection = (vectorAC[0] * vectorAB[0] + vectorAC[1] * vectorAB[1] + vectorAC[2] * vectorAB[2]) /
+		(vectorAB[0] * vectorAB[0] + vectorAB[1] * vectorAB[1] + vectorAB[2] * vectorAB[2]);
+
+	// 计算垂直向量
+	double vectorAP[3] = { vectorAC[0] - projection * vectorAB[0],
+						  vectorAC[1] - projection * vectorAB[1],
+						  vectorAC[2] - projection * vectorAB[2] };
+
+	// 计算距离
+	double distance = sqrt(vectorAP[0] * vectorAP[0] + vectorAP[1] * vectorAP[1] + vectorAP[2] * vectorAP[2]);
+
+	return distance;
+}

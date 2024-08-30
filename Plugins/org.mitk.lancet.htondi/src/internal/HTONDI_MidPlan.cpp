@@ -20,6 +20,8 @@ All rights reserved.
 #include <mitkMatrixConvert.h>
 #include "mitkTrackingTool.h"
 #include "surfaceregistraion.h"
+#include "vtkPlaneSource.h"
+
 
 
 // lancet
@@ -763,6 +765,173 @@ bool HTONDI::OnCalibrateSawClicked()
 		m_Controls.textBrowser_CalibrateRes->append("Current Saw Calibrate ERROR01: " + QString::number(SawError01));
 
 		m_Controls.textBrowser_CalibrateRes->append("Current Saw Calibrate ERROR02: " + QString::number(SawError02));
+
+		// 同时绘制静态截骨平面图像
+		mitk::Point3D PlanePoint1, PlanePoint2, PlanePoint3;
+		auto SawPoints = GetDataStorage()->GetNamedNode("SawLandMarkPointSet");
+		auto Saw = GetDataStorage()->GetNamedNode("Saw");
+
+		// 由远及近
+		if (SawPoints) {
+			// 由远及近，取出三个点
+			auto SawPointSet = dynamic_cast<mitk::PointSet*>(SawPoints->GetData());
+			PlanePoint1 = SawPointSet->GetPoint(0);
+			PlanePoint2 = SawPointSet->GetPoint(1);
+			PlanePoint3 = SawPointSet->GetPoint(2);
+			// 由远及近，取出三个点
+			SawPoints->SetVisibility(true);
+		}
+		else
+		{
+			m_Controls.textBrowser_Action->append("SawLandMarkPointSet Not Found.");
+			return false;
+		}
+		if (Saw) {
+			// 由远及近，取出三个点
+			Saw->SetVisibility(true);
+		}
+		else
+		{
+			m_Controls.textBrowser_Action->append("Saw model Not Found.");
+			return false;
+		}
+		// 计算当前摆锯平面的 法向量 normalSaw ，根据摆锯上的三个标定点位计算平面的法向量
+		Eigen::Vector3d normalVector;
+		Eigen::Vector3d vector1 = Eigen::Vector3d(PlanePoint2[0] - PlanePoint1[0], PlanePoint2[1] - PlanePoint1[1], PlanePoint2[2] - PlanePoint1[2]);
+		Eigen::Vector3d vector2 = Eigen::Vector3d(PlanePoint3[0] - PlanePoint1[0], PlanePoint3[1] - PlanePoint1[1], PlanePoint3[2] - PlanePoint1[2]);
+		normalVector = vector1.cross(vector2).normalized();
+
+		// 法向量
+		double normalSaw[3]
+		{
+			normalVector[0],
+			normalVector[1],
+			normalVector[2]
+		};
+
+		// 计算平面的中心点为 几何中心, 将其位置移动到摆锯最前端
+		double originSaw[3]
+		{
+			(PlanePoint1[0] + PlanePoint2[0] + PlanePoint3[0]) / 3,
+			(PlanePoint1[1] + PlanePoint2[1] + PlanePoint3[1]) / 3,
+			(PlanePoint1[2] + PlanePoint2[2] + PlanePoint3[2]) / 3
+		};
+
+
+		// 生成摆锯截骨平面
+		// 创建一个初始的截骨平面，并定义位置和方向
+		auto realTimeSawPlaneSource = vtkSmartPointer<vtkPlaneSource>::New();
+
+		// 生成初始平面
+		//realTimeSawPlaneSource->SetOrigin(0, 0, 0);
+
+		// 设定可视化截骨平面的大小，70*70
+		realTimeSawPlaneSource->SetPoint1(0, 70, 0);
+		realTimeSawPlaneSource->SetPoint2(70, 0, 0);
+
+
+		// 将初始构建的截骨平面移动到计算出来的位置上来
+		realTimeSawPlaneSource->SetCenter(originSaw);
+		realTimeSawPlaneSource->SetNormal(normalSaw);
+
+		// 图像更新
+		realTimeSawPlaneSource->Update();
+
+		// 添加入库
+		auto realTimeSawPlane = mitk::Surface::New();
+		realTimeSawPlane->SetVtkPolyData(realTimeSawPlaneSource->GetOutput());
+
+		// 创建实时平面
+		auto tmpPlane = GetDataStorage()->GetNamedNode("CurrentCutPlane01");
+		if (tmpPlane)
+		{
+			tmpPlane->SetData(realTimeSawPlane);
+			m_Controls.textBrowser_Action->append("Plane updated.");
+		}
+		else
+		{
+			// 创建截骨平面DataNode对象
+			auto planeNode = mitk::DataNode::New();
+			planeNode->SetData(realTimeSawPlane);
+			planeNode->SetColor(1.0, 1.0, 0.0);
+			planeNode->SetOpacity(0.5);
+			planeNode->SetName("CurrentCutPlane01");
+
+			// 添加到库
+			GetDataStorage()->Add(planeNode);
+			m_Controls.textBrowser_Action->append("Plane created.");
+		}
+
+		// 然后，绘制截骨平面最前端的两个点
+		auto tmpNodes = GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial");
+		if (tmpNodes) {
+			GetDataStorage()->Remove(tmpNodes);
+		}
+		else
+		{
+			/* 如果是第一次生成摆锯的平面
+				1. 初始化为水平位置(依据模型初始位置)
+				2. 计算并存储平面关键点在摆锯平面下的位置
+				3. 然后进行可视化更新
+
+			注：这里默认初始加载的摆锯是水平
+			*/
+
+			/* 1. 水平面位置初始化 */
+			// 定义截骨末端合页点的初始坐标
+			mitk::Point3D point0;
+			mitk::Point3D point1;
+			mitk::Point3D point2;
+			mitk::Point3D point3;
+			mitk::Point3D point4;
+			mitk::Point3D planeCenterPoint;//水平面中心点
+
+			// 点 1 - 前端中点
+			point0[0] = originSaw[0] - 35;
+			point0[1] = originSaw[1];
+			point0[2] = originSaw[2];
+			// 点 2 - 前端左侧
+			point1[0] = originSaw[0] - 35;
+			point1[1] = originSaw[1] - 35;
+			point1[2] = originSaw[2];
+			// 点 3 - 前端右侧
+			point2[0] = originSaw[0] - 35;
+			point2[1] = originSaw[1] + 35;
+			point2[2] = originSaw[2];
+			// 点 4 - 末端左侧
+			point3[0] = originSaw[0] + 35;
+			point3[1] = originSaw[1] - 35;
+			point3[2] = originSaw[2];
+			// 点 5 - 末端中点 
+			point4[0] = originSaw[0] + 35;
+			point4[1] = originSaw[1];
+			point4[2] = originSaw[2];
+			// 点 6 - 设置原点
+			planeCenterPoint[0] = originSaw[0];
+			planeCenterPoint[1] = originSaw[1];
+			planeCenterPoint[2] = originSaw[2];
+
+			// 计算这些点相对于摆锯坐标系的位置
+			m_PointsOnSaw = CalculateRelativePoints({ point0, point1, point2, point3, point4 },
+				normalVector, Eigen::Vector3d(originSaw[0], originSaw[1], originSaw[2]));
+
+			// 将坐标添加到mitk::PointSet中
+			// 用于上升截骨面的旋转计算
+			mitkPointSetRealTime->InsertPoint(0, point0);//第一截骨面末端中点标记
+			mitkPointSetRealTime->InsertPoint(1, point1);
+			mitkPointSetRealTime->InsertPoint(2, point2);
+			mitkPointSetRealTime->InsertPoint(3, point3);
+			mitkPointSetRealTime->InsertPoint(4, point4);
+			mitkPointSetRealTime->InsertPoint(5, planeCenterPoint);//平面原点
+			// 否则创建新的平面
+			mitk::DataNode::Pointer pointSetInPlaneCutPlane = mitk::DataNode::New();
+			pointSetInPlaneCutPlane->SetName("pointSetInRealPlaneAxial");
+			// 红色，大小 5.0
+			pointSetInPlaneCutPlane->SetColor(0.0, 1.0, 0.0);
+			pointSetInPlaneCutPlane->SetData(mitkPointSetRealTime);
+			pointSetInPlaneCutPlane->SetFloatProperty("pointsize", 3.0);
+			GetDataStorage()->Add(pointSetInPlaneCutPlane);
+		}
 	}
 
 	// 修改标定误差为landmark误差

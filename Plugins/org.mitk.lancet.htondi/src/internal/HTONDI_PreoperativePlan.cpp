@@ -1665,7 +1665,10 @@ void HTONDI::CaculateStrechHeigh()
 // 截骨效应
 bool HTONDI::GetIntersectionLine()
 {
-	/*实时获取截骨线*/
+	/* 实时获取截骨线 
+		原理: 利用截骨平面和骨表面进行切割计算，得到一组点云的交集
+	
+	*/
 	auto cutPlaneNode = GetDataStorage()->GetNamedNode("1st cut plane");
 	auto tibiaSurfaceNode = GetDataStorage()->GetNamedNode("tibiaSurface");
 	if (cutPlaneNode == nullptr)
@@ -1686,7 +1689,8 @@ bool HTONDI::GetIntersectionLine()
 
 	auto tibiaVtkSurface_initial = tibiaMitkSurface->GetVtkPolyData();
 
-	// transform tmpVtkSurface
+	// 用于复制出一个新的图像，而不对原始数据产生不好的影像
+	// 复制截骨平面
 	vtkNew<vtkTransform> cutPlaneTransform;
 	cutPlaneTransform->SetMatrix(mitkCutSurface->GetGeometry()->GetVtkMatrix());
 	vtkNew<vtkTransformFilter> cutPlaneTransformFilter;
@@ -1694,10 +1698,11 @@ bool HTONDI::GetIntersectionLine()
 	cutPlaneTransformFilter->SetInputData(tmpVtkSurface_initial);
 	cutPlaneTransformFilter->Update();
 
+	// 得到了这新的数据
 	vtkNew<vtkPolyData> tmpVtkSurface;
 	tmpVtkSurface->DeepCopy(cutPlaneTransformFilter->GetPolyDataOutput());
 
-	// transform tibiaVtkSurface
+	// 复制骨表面
 	vtkNew<vtkTransform> tibiaTransform;
 	tibiaTransform->SetMatrix(tibiaMitkSurface->GetGeometry()->GetVtkMatrix());
 	vtkNew<vtkTransformFilter> tibiaTransformFilter;
@@ -1705,10 +1710,10 @@ bool HTONDI::GetIntersectionLine()
 	tibiaTransformFilter->SetInputData(tibiaVtkSurface_initial);
 	tibiaTransformFilter->Update();
 
-
 	vtkNew<vtkPolyData> tibiaVtkSurface;
 	tibiaVtkSurface->DeepCopy(tibiaTransformFilter->GetPolyDataOutput());
 
+	// 计算截骨平面的当前法向量和平面中心
 	double surfaceNormal[3];
 	double cutPlaneCenter[3];
 

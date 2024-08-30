@@ -20,6 +20,11 @@ All rights reserved.
 #include <mitkMatrixConvert.h>
 #include "mitkTrackingTool.h"
 #include "surfaceregistraion.h"
+#include "vtkTransformFilter.h"
+#include "vtkCutter.h"
+
+#include <mitkSurfaceToImageFilter.h>
+
 
 // lancet
 #include <lancetRobotTrackingTool.h>
@@ -152,6 +157,15 @@ void HTONDI::UpdateHTODrill()
 
 void HTONDI::UpdateHTOSaw()
 {
+	/* 实时截骨导航
+		1. 影像实时摆锯导航---初始状态进行投影, 后续状态进行实时更新
+		2. 计算摆锯平面夹角误差
+		3. 计算截骨深度
+		4. 进行截骨模拟渲染
+	*/
+
+	// 1. 进行影像投影计算
+
 	cout << "test Saw 01" << endl;
 	if (GetDataStorage()->GetNamedNode("Saw") == nullptr)
 	{
@@ -182,6 +196,7 @@ void HTONDI::UpdateHTOSaw()
 	mitk::NavigationData::Pointer nd_rfToProbe = GetNavigationDataInRef(nd_ndiToProbe, nd_ndiToObjectRf);
 
 	cout << "test Saw 05" << endl;
+	// 使用探针时，首次需要保证在相机下
 	vtkNew<vtkMatrix4x4> vtkMatrix_rfToProbe;
 	mitk::TransferItkTransformToVtkMatrix(nd_rfToProbe->GetAffineTransform3D().GetPointer(), vtkMatrix_rfToProbe);
 
@@ -215,6 +230,7 @@ void HTONDI::UpdateHTOSaw()
 			m_SawPointsOnSawRF4d.col(i) = m_SawPointsOnSawRF[i];
 		}
 
+		cout << "test Saw 08-02" << endl;
 		// 计算current位置
 		Eigen::Matrix4Xd N_TP_Under_Image_Recent = T_Image_To_SawRF * m_SawPointsOnSawRF4d;
 
@@ -229,33 +245,41 @@ void HTONDI::UpdateHTOSaw()
 			N_TP_Under_Image_Last(3, i) = 1;
 		}
 
+		cout << "test Saw 08-03" << endl;
 		// 计算转化矩阵T_Current
 		Eigen::Matrix4Xd T_Current = N_TP_Under_Image_Recent * N_TP_Under_Image_Last.inverse();
 
+		// -------- 出于一些问题，这里计算结果不用 ---------
+		cout << "test Saw 08-04" << endl;
 		// T_Current转化回 vtkMatrix4x4
-		vtkNew<vtkMatrix4x4> T_Current_vtk;
-		for (int i = 0; i < 4; i++) {
-			for (int j = 0; j < T_Current.cols(); j++) {
-				T_Current_vtk->SetElement(i, j, T_Current(i, j));
-			}
-		}
+		//vtkNew<vtkMatrix4x4> T_Current_vtk;
+		//for (int i = 0; i < 4; i++) {
+		//	for (int j = 0; j < T_Current.cols(); j++) {
+		//		T_Current_vtk->SetElement(i, j, T_Current(i, j));
+		//	}
+		//}
+		// ----------------------------------------------
 
-		/* 方法二: 将当前映射后的点 N_SP_Under_Camera_current 与  N_SP_Under_Camera_last 的配准矩阵 T_Current2Last */
+		cout << "test Saw 08-05" << endl;
+		/* 方法: 将当前映射后的点 N_SP_Under_Camera_current 与  N_SP_Under_Camera_last 的配准矩阵 T_Current2Last */
 		// 首先将当前点的位置投影到Image中 N_SP_Under_Camera_current = T_Image2SawRF * N_SP_Under_SawRF
 		
 		auto landmark_rf = mitk::PointSet::New();
 		// 打印当前点的信息
 		for (int i = 0; i < saw_image->GetLandmarks()->GetSize(); i++)
 		{
+			cout << "test Saw 08-05-01" << endl;
 			Eigen::VectorXd columnData = N_TP_Under_Image_Recent.col(i);
 			mitk::Point3D point;
 			point[0] = columnData[0];
 			point[1] = columnData[1];
 			point[2] = columnData[2];
+			cout << "test Saw 08-05-02" << endl;
 			landmark_rf->InsertPoint(point);
+			cout << "test Saw 08-05-03" << endl;
 		}
 
-
+		cout << "test Saw 08-06" << endl;
 		auto Current2Last_Registrator = mitk::SurfaceRegistration::New();
 		Current2Last_Registrator->SetLandmarksSrc(saw_image->GetLandmarks());
 		Current2Last_Registrator->SetLandmarksTarget(landmark_rf);
@@ -265,12 +289,20 @@ void HTONDI::UpdateHTOSaw()
 		vtkNew<vtkMatrix4x4> T_Current2Last;
 		T_Current2Last->DeepCopy(Current2Last_Registrator->GetResult());
 
-		// 首先将Last转化为Current
+		cout << "test Saw 08-07" << endl;
+		// 将Last转化为Current
 		GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current2Last);
-
-		// 然后将Current进行映射
-		// GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
 		GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->Modified();
+
+		cout << "test Saw 08-08" << endl;
+		// 更新实时截骨面
+		GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current2Last);
+		GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData()->GetGeometry()->Modified();
+
+		cout << "test Saw 08-09" << endl;
+		// 更新实时截骨面前端点
+		GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current2Last);
+		GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->Modified();
 
 		// 更新标准位
 		start_saw = true;
@@ -279,35 +311,151 @@ void HTONDI::UpdateHTOSaw()
 	}
 	else if (start_saw == true)
 	{
-		cout << "test Saw 08-02" << endl;
+		cout << "test Saw 09" << endl;
+		// 更新摆锯位置
 		GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
 		GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->Modified();
+
+		// 更新实时截骨面
+		GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
+		GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData()->GetGeometry()->Modified();
+
+		// 更新实时截骨面前端点
+		GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
+		GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->Modified();
 	}
 
+	// 2. 首先确保克式钉确定的截骨平面是正确的
+	if (m_RealtimeAngleCheck) {
+		cout << "test Saw 10" << endl;
+		// 计算法向量夹角
+		auto sourceCutPlane01 = dynamic_cast<mitk::Surface*>(GetDataStorage()->GetNamedNode("1st cut plane")->GetData());
+		auto sourceCutPlanePolyData01 = sourceCutPlane01->GetVtkPolyData();
 
+		cout << "test Saw 11" << endl;
+		auto currentCutPlane01 = dynamic_cast<mitk::Surface*>(GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData());
+		auto currentCutPlanePolyData01 = currentCutPlane01->GetVtkPolyData();
 
-	//// 截骨面生成，首先计算法向量
-	//auto sawLandmark = saw_image->GetLandmarks();
-	//mitk::Point3D point0 = sawLandmark->GetPoint(0);
-	//mitk::Point3D point1 = sawLandmark->GetPoint(1);
-	//mitk::Point3D point2 = sawLandmark->GetPoint(2);
+		cout << "test Saw 12" << endl;
+		Eigen::Vector3d normalSourcePlane01, normalCurrentPlane01;
+		normalSourcePlane01 = ExtractNormalFromPlane("1st cut plane");
+		normalCurrentPlane01 = ExtractNormalFromPlane("CurrentCutPlane01");
 
-	//m_Controls.textBrowser_Action->append("Current Saw Point0: ("
-	//	+ QString::number(point0[0]) +
-	//	", " + QString::number(point0[1]) +
-	//	", " + QString::number(point0[2]) + ")"
-	//);
-	//m_Controls.textBrowser_Action->append("Current Saw Point1: ("
-	//	+ QString::number(point1[0]) +
-	//	", " + QString::number(point1[1]) +
-	//	", " + QString::number(point1[2]) + ")"
-	//);
-	//m_Controls.textBrowser_Action->append("Current Saw Point2: ("
-	//	+ QString::number(point2[0]) +
-	//	", " + QString::number(point2[1]) +
-	//	", " + QString::number(point2[2]) + ")"
-	//);
+		// 计算两个方向向量之间的夹角
+		double dotProduct = normalSourcePlane01[0] * normalCurrentPlane01[0] + normalSourcePlane01[1] * normalCurrentPlane01[1] + normalSourcePlane01[2] * normalCurrentPlane01[2]; // 点积
 
+		// 计算向量长度
+		double magnitude1 = sqrt(pow(normalSourcePlane01[0], 2) + pow(normalSourcePlane01[1], 2) + pow(normalSourcePlane01[2], 2));
+		double magnitude2 = sqrt(pow(normalCurrentPlane01[0], 2) + pow(normalCurrentPlane01[1], 2) + pow(normalCurrentPlane01[2], 2));
+
+		// 计算夹角的余弦值
+		double cosAngle = dotProduct / (magnitude1 * magnitude2);
+
+		// 使用反余弦函数计算夹角（弧度）
+		double angleInRadians = acos(cosAngle);
+
+		// 将弧度转换为度数，保留1位小数
+		double angleInDegrees = round(angleInRadians * (180.0 / M_PI) * 10) / 10;
+		if (angleInDegrees > 90)
+		{
+			angleInDegrees = 180.0 - angleInDegrees;
+		}
+
+		// 输出夹角到实际的位置
+		m_Controls.textBrowser_AxialCut->append("Real time Angle Miss: " + QString::number(angleInDegrees));
+		m_Controls.textBrowser_AngleGuide->append(QString::number(angleInDegrees));
+
+		if (angleInDegrees < 0.5)
+		{
+			m_Controls.textBrowser_AxialCut->append("Current Angle Missing < 0.5 is acceptable.");
+		}
+		else
+		{
+			m_Controls.textBrowser_AxialCut->append("Current Angle Missing > 0.5 !!");
+		}
+	}
+	
+
+	// 3. 在确定截骨角度正常后，开始进行截骨
+	// - 首先计算截骨线 ==> 然后计算截骨深度
+	// - 这里假设摆锯前端与规划截骨面前端平行
+
+	// 3.1 计算截骨线，获取最值点
+	if (m_RealtimeCutPlaneCheck == true)
+	{
+		// 以调整好的克式钉角度进行截骨计算
+		GetRealTimeIntersectionLine("CurrentCutPlane01", "tibiaSurface");
+		m_RealtimeCutPlaneCheck = false;
+	}
+
+	// 3.2 计算截骨深度
+	if (m_RealtimeCutCheck == true)
+	{
+		// 取出实时截骨面的前端点位置
+		auto tmpNodes = GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial");
+		if (tmpNodes) {
+			// 获取数据
+			mitk::Point3D point1 = dynamic_cast<mitk::PointSet*>(tmpNodes->GetData())->GetPoint(1);
+			mitk::Point3D point2 = dynamic_cast<mitk::PointSet*>(tmpNodes->GetData())->GetPoint(2);
+
+			// 计算截骨深度，点到直线的距离
+			double front2Min, front2Max;
+			double pos_FrontLeft[3], pos_FrontRight[3];
+			pos_FrontLeft[0] = point1[0];
+			pos_FrontLeft[1] = point1[1];
+			pos_FrontLeft[2] = point1[2];
+
+			pos_FrontRight[0] = point2[0];
+			pos_FrontRight[1] = point2[1];
+			pos_FrontRight[2] = point2[2];
+
+			// 得到点线距离
+			front2Min = DistancePointToLine(pos_FrontLeft, m_CutIntersectionMinPos, m_CutIntersectionMaxPos);
+			front2Max = DistancePointToLine(pos_FrontRight, m_CutIntersectionMaxPos, m_CutIntersectionMaxPos);
+
+			// 依据点坐标来进行判别输出
+			if (pos_FrontLeft[0] > m_CutIntersectionMinPos[0] && pos_FrontLeft[0] < m_CutIntersectionMaxPos[0])
+			{
+				/* 锯片前端出于胫骨内部 */
+				m_Controls.textBrowser_AxialCut->append("Current Cut Depth: " + QString::number(front2Min));
+
+				// 进行截骨阈值判断
+				if (m_threshold_SawDepth - front2Min >= 0.2)
+				{
+					m_Controls.textBrowser_AxialCut->append("State: Safe");
+				}
+				else if (m_threshold_SawDepth - front2Min >= 0 && m_threshold_SawDepth - front2Min < 0.2)
+				{
+					m_Controls.textBrowser_AxialCut->append("State: Warning!");
+				}
+			}
+			else if (pos_FrontLeft[0] < m_CutIntersectionMinPos[0])
+			{
+				/* 锯片前端未抵达胫骨 */
+				m_Controls.textBrowser_AxialCut->append("Current Cut Depth: 0, Current Distance From SawFront to Tibia: " + QString::number(front2Min));
+			}
+			else if (pos_FrontLeft[0] > m_CutIntersectionMaxPos[0])
+			{
+				/* 锯片前端磨穿达胫骨 */
+				m_Controls.textBrowser_AxialCut->append("State: Saw System Off.");
+				m_SawPower = false;
+			}
+		}
+		else {
+			m_Controls.textBrowser_Action->append("Error: pointSetInRealPlaneAxial is missing!");
+		}
+	}
+
+	// 3.3 模拟截骨
+	if (m_SawPower == true)
+	{
+		// 电源于开启状态则进行截骨模拟
+		// TestCut
+	}
+	
+	
+
+	cout << "refresh" << endl;
 }
 
 bool HTONDI::OnStartAxialGuideClicked()
@@ -329,12 +477,16 @@ bool HTONDI::OnStartAxialGuideClicked()
 	// 1. 显示规划的截骨面 + 显示实时截骨面位置
 	auto preCutPlane01 = GetDataStorage()->GetNamedNode("1st cut plane");
 	auto realTimeSaw = GetDataStorage()->GetNamedNode("Saw");
+	auto realCutplane01 = GetDataStorage()->GetNamedNode("CurrentCutPlane01");
+	auto realPointsOnCutplane01 = GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial");
 
 	// 检测数据存在，然后打开截骨导航
-	if (preCutPlane01 && realTimeSaw)
+	if (preCutPlane01 && realTimeSaw && realCutplane01 && realPointsOnCutplane01)
 	{
 		preCutPlane01->SetVisibility(true);
 		realTimeSaw->SetVisibility(true);
+		realCutplane01->SetVisibility(true);
+		realPointsOnCutplane01->SetVisibility(true);
 	}
 	else
 	{
@@ -342,6 +494,9 @@ bool HTONDI::OnStartAxialGuideClicked()
 		return false;
 	}
 
+	// 先运行一次，更新到目标位置上来
+	UpdateHTOSaw();
+	
 	// 对Saw生成实时截骨平面
 	if (m_HTOSawUpdateTimer == nullptr)
 	{
@@ -352,13 +507,13 @@ bool HTONDI::OnStartAxialGuideClicked()
 	// 先终止探针的识别
 	//m_HTOPrboeUpdateTimer->stop();
 	//cout << "stop probe visulization" << endl;
-	
-	// 先运行一次，更新到目标位置上来
-	UpdateHTOSaw();
 
-	disconnect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw()));
+
 	connect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw()));
 	m_HTOSawUpdateTimer->start(100);
+	
+	// 启动导航的同时，计算误差角度
+	m_RealtimeAngleCheck = true;
 
 	return true;
 }
@@ -800,13 +955,22 @@ void HTONDI::CalculateRealTimeCutAngle()
 bool HTONDI::OnStartAxialCutClicked()
 {
 	/* 启动水平截骨
-	1. 改变摆锯截骨状态
-	2. 计算实时 截骨深度
-	3. 进行截骨保护
+		1. 改变摆锯截骨状态
+		2. 计算实时 截骨深度
+		3. 进行截骨保护
+
+	====== 注意 ======
+	持摆锯截骨时，摆锯锯片在克式针上，锯片应该与克式针平行
+	这样才能保证深度计算正确
 	*/
 
 	// 开始水平截骨，启动摆锯，启动截骨导航
-	m_Controls.textBrowser_Action->append("Action: Check Drill Node.");
+	m_Controls.textBrowser_Action->append("Action: Turn On Saw Power.");
+
+	// 1. 改变导航状态
+	m_RealtimeAngleCheck = false;
+	m_RealtimeCutCheck = true;
+	m_SawPower = true;
 
 	return true;
 }
@@ -1445,4 +1609,168 @@ bool HTONDI::OnCaculateErrorClicked()
 	m_Controls.textBrowser_Action->append("Action: Check Drill Node.");
 
 	return true;
+}
+
+// 截骨效应
+bool HTONDI::GetRealTimeIntersectionLine(const std::string& cutPlaneName, const std::string& surfaceName)
+{
+	/* 实时获取截骨线
+		原理: 利用截骨平面和骨表面进行切割计算，得到一组点云的交集
+	*/
+	cout << "GetRealTimeIntersectionLine 01" << endl;
+	auto cutPlaneNode = GetDataStorage()->GetNamedNode(cutPlaneName);
+	auto surfaceNode = GetDataStorage()->GetNamedNode(surfaceName);
+
+	if (cutPlaneNode == nullptr || surfaceNode == nullptr)
+	{
+		m_Controls.textBrowser_Action->append(QString::fromStdString(cutPlaneName) + " or " + QString::fromStdString(surfaceName) + "is not ready!");
+		return false;
+	}
+
+	// 使用tmp的目的是获取最新的数据而非初始数据
+
+	// tmp-切割平面
+	auto cutPlaneSource = dynamic_cast<mitk::Surface*>(cutPlaneNode->GetData());
+	auto tmpcutPlaneSource_vtk = cutPlaneSource->GetVtkPolyData();
+	// 复制切割平面
+	vtkNew<vtkTransform> cutPlaneTransform;
+	cutPlaneTransform->SetMatrix(cutPlaneSource->GetGeometry()->GetVtkMatrix());
+	vtkNew<vtkTransformFilter> cutPlaneTransformFilter;
+	cutPlaneTransformFilter->SetTransform(cutPlaneTransform);
+	cutPlaneTransformFilter->SetInputData(tmpcutPlaneSource_vtk);
+	cutPlaneTransformFilter->Update();
+	// 得到新的数据
+	vtkNew<vtkPolyData> tmpcutPlaneCopy_vtk;
+	tmpcutPlaneCopy_vtk->DeepCopy(cutPlaneTransformFilter->GetPolyDataOutput());
+
+
+	// tmp-被切割物体
+	auto surfaceSource = dynamic_cast<mitk::Surface*>(surfaceNode->GetData());
+	auto tmpsurfaceSource_vtk = surfaceSource->GetVtkPolyData();
+	// 复制被切割物体表面
+	vtkNew<vtkTransform> surfaceTransform;
+	surfaceTransform->SetMatrix(surfaceSource->GetGeometry()->GetVtkMatrix());
+	vtkNew<vtkTransformFilter> surfaceTransformFilter;
+	surfaceTransformFilter->SetTransform(surfaceTransform);
+	surfaceTransformFilter->SetInputData(tmpsurfaceSource_vtk);
+	surfaceTransformFilter->Update();
+	// 得到新的数据
+	vtkNew<vtkPolyData> tmpSurfaceCopy_vtk;
+	tmpSurfaceCopy_vtk->DeepCopy(surfaceTransformFilter->GetPolyDataOutput());
+
+
+	// 获取切割平面的法向量和中心点
+	double cutPlaneNormal[3];
+	double cutPlaneCenter[3];
+	GetPlaneProperty(tmpcutPlaneCopy_vtk, cutPlaneNormal, cutPlaneCenter);
+
+	cout << "GetRealTimeIntersectionLine 04" << endl;
+	// 使用获取的法向量和原点创建一个vtkPlane对象
+	vtkSmartPointer<vtkPlane> cutPlane = vtkSmartPointer<vtkPlane>::New();
+	cutPlane->SetNormal(cutPlaneNormal);
+	cutPlane->SetOrigin(cutPlaneCenter);
+
+	cout << "GetRealTimeIntersectionLine 05" << endl;
+	// 然后将这个cutPlane设置给vtkCutter
+	vtkSmartPointer<vtkCutter> cutter_plane = vtkSmartPointer<vtkCutter>::New();
+	cutter_plane->SetCutFunction(cutPlane);
+	//设置输入数据
+	cutter_plane->SetInputData(tmpSurfaceCopy_vtk);
+	//更新获取交线
+	cutter_plane->Update();
+	vtkSmartPointer<vtkPolyData> intersectionLine = cutter_plane->GetOutput();
+
+	cout << "GetRealTimeIntersectionLine 06" << endl;
+	// 取得无限扩展平面上的截骨面交线，并提取其水平方向上的最值点, 存储到全局变量中
+	RealTimeTraverseIntersectionLines(intersectionLine, m_CutIntersectionMinPos, m_CutIntersectionMaxPos);
+
+	// 可以进行可视化
+	mitk::Point3D point_min, point_max;
+	point_min[0] = m_CutIntersectionMinPos[0];
+	point_min[1] = m_CutIntersectionMinPos[1];
+	point_min[2] = m_CutIntersectionMinPos[2];
+	point_max[0] = m_CutIntersectionMaxPos[0];
+	point_max[1] = m_CutIntersectionMaxPos[1];
+	point_max[2] = m_CutIntersectionMaxPos[2];
+	mitk::PointSet::Pointer CutIntersectionPointSet = mitk::PointSet::New();
+	CutIntersectionPointSet->InsertPoint(0, point_min);
+	CutIntersectionPointSet->InsertPoint(1, point_max);
+
+	// 删除上次生成的点
+	auto tmpNodes = GetDataStorage()->GetNamedNode("CutIntersectionPoints");
+	if (tmpNodes) {
+		GetDataStorage()->Remove(tmpNodes);
+	}
+
+	mitk::DataNode::Pointer pointSetInPlaneCutPlane = mitk::DataNode::New();
+	pointSetInPlaneCutPlane->SetName("CutIntersectionPoints");
+	// 红色，大小 5.0
+	pointSetInPlaneCutPlane->SetColor(0.0, 0.0, 1.0);
+	pointSetInPlaneCutPlane->SetData(CutIntersectionPointSet);
+	pointSetInPlaneCutPlane->SetFloatProperty("pointsize", 3.0);
+	GetDataStorage()->Add(pointSetInPlaneCutPlane);
+
+	return true;
+}
+
+void HTONDI::RealTimeTraverseIntersectionLines(vtkSmartPointer<vtkPolyData> intersectionLine, double pos_min[3], double pos_max[3])
+{
+	// 获取截骨线最左最右侧点
+
+	cout << "RealTimeTraverseIntersectionLines 01" << endl;
+
+	// 获取点集
+	vtkSmartPointer<vtkPoints> points = intersectionLine->GetPoints();
+
+	// 获取点的数量
+	int numberOfPoints = points->GetNumberOfPoints();
+	double minX = std::numeric_limits<double>::max();
+	int minXIndex = -1;
+	double maxX = -std::numeric_limits<double>::max(); // 初始化为小于可能的最小x值
+	int maxXIndex = -1;
+
+	//double pos_min[3];
+	//double pos_max[3];
+
+	// 这里提取的是在水平方向上的最大值点
+	std::cout << "Intersection Line Points:" << std::endl;
+	for (int i = 0; i < numberOfPoints; ++i)
+	{
+		double point[3];
+		points->GetPoint(i, point); 
+
+		//检查当前点的x坐标是否小于已知的最小x值, 记录最小x值对应的点的索引
+		if (point[0] < minX)
+		{
+			minX = point[0]; 
+			minXIndex = i;
+		}
+		if (point[0] > maxX)
+		{
+			maxX = point[0];
+			maxXIndex = i;
+		}
+	}
+	if (minXIndex != -1 && maxXIndex != -1)
+	{
+		pos_min[0] = points->GetPoint(minXIndex)[0];
+		pos_min[1] = points->GetPoint(minXIndex)[1];
+		pos_min[2] = points->GetPoint(minXIndex)[2];
+
+		pos_max[0] = points->GetPoint(maxXIndex)[0];
+		pos_max[1] = points->GetPoint(maxXIndex)[1];
+		pos_max[2] = points->GetPoint(maxXIndex)[2];
+
+		std::cout << "The point with the smallest x-coordinate is Point " << minXIndex << ": ("
+			<< minX << ", " << points->GetPoint(minXIndex)[1] << ", " << points->GetPoint(minXIndex)[2] << ")" << std::endl;
+
+		std::cout << "The point with the largest x-coordinate is Point " << maxXIndex << ": ("
+			<< maxX << ", " << points->GetPoint(maxXIndex)[1] << ", " << points->GetPoint(maxXIndex)[2] << ")" << std::endl;
+	}
+	else
+	{
+		std::cout << "No points were processed." << std::endl;
+		return;
+	}
+
 }

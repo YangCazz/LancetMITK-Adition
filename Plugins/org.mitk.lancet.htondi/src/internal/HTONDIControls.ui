@@ -109,7 +109,7 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="currentIndex">
-       <number>8</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab_5">
        <attribute name="title">
@@ -2952,7 +2952,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
       <property name="text">
-       <string>春立-HTO_NDI Demo Version 3.1</string>
+       <string>春立-HTO_NDI Demo Version 3.2</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_42">
@@ -2971,7 +2971,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
       <property name="text">
-       <string>Updated Date: 2024.08.27</string>
+       <string>Updated Date: 2024.08.29</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_43">
