@@ -109,7 +109,7 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab_5">
        <attribute name="title">
@@ -125,45 +125,42 @@ p, li { white-space: pre-wrap; }
          </rect>
         </property>
         <property name="plainText">
-         <string>此demo用于验证春丽HTO软件流程，当前版本为3.0
+         <string>此demo用于验证春丽HTO软件流程，当前版本为3.3
 在使用demo前请预先加载功能依赖的基本数据，图像表面数据和预先设计好的功能文件在同目录下的文件夹内
 【功能更新LOG】
-	1.更新器械标定方法
-	2.更新代码结构，拆分成多个头文件
-	3.更新实时导航测试
-	4.更新导航数据结构【预计下个版本】
+	1.更新磨钻标定与损失计算方法
+	2.更新撑开角度计算方法
 【术前规划】：
-	【完成】特征点加载
-	【完成】影像股骨头中心拟合   
-	【完成】截骨规划：水平截骨 + 截骨面微调 + 上升截骨
-	【完成】力线规划：力线显示 + 在胫骨平台占比计算
-	【完成】撑开角度规划
-	【完成】钢板规划
+	【01】特征点标记/特征点数据加载
+	【02】影像股骨头中心拟合：依据表面标记点完成股骨头中心的拟合   
+	【03】截骨面规划：水平截骨 + 截骨面微调 + 上升截骨
+	【04】力线演算：力线显示 + 在胫骨平台占比计算
+	【05】撑开角度规划：截骨两端按合页轴(截骨面前端)旋转撑开
+	【06】钢板规划：
 【硬件准备】：
-	【完成】NDI相机连接
+	【01】NDI相机连接：加载.IGTToolStorage仓库 + 显示连接状态
 
 【术中注册】：
-	【完成】骨参考阵列注册
-	【完成】探针注册 + 探针标定
-	【完成】股骨/胫骨标记 注册
-	【完成】摆锯标定
-	【完成】磨钻标定
-	【完成】晃腿获得实际股骨头中心
-	【完成】股骨/胫骨标记验证
-	【完成】股骨粗配准点采集 + 配准计算
-	【完成】胫骨粗配准点采集 + 配准计算
-	【完成】胫骨精配准点采集 + 配准应用
+	【01】探针注册 + 探针标定
+	【02】股骨/胫骨标记 注册
+	【03】摆锯标定
+	【04】磨钻标定
+	【05】晃腿获得实际股骨头中心
+	【06】股骨/胫骨标记验证
+	【07】股骨粗配准点采集 + 配准计算
+	【08】胫骨粗配准点采集 + 配准计算
+	【09】胫骨精配准点采集 + 配准应用
 
-【术中导航】：=====在手术设备准备齐全情况下克验证导航效果======
-	【完成】克式钉磨钻导航 + 磨钻深度计算
-	【完成】水平截骨导航   + 截骨深度导航
-	【完成】上升截骨导航   + 截骨深度导航
-	【完成】撑开角度导航
-	【完成】术中力线显示   + 术后力线显示
-	【完成】钢板固定导航
+【术中导航】：===== 在手术设备准备齐全情况下克验证导航效果 ======
+	【01】克式钉磨钻导航 + 磨钻深度计算
+	【02】水平截骨导航   + 截骨深度导航
+	【03】上升截骨导航   + 截骨深度导航
+	【04】撑开角度导航
+	【05】术中力线显示   + 术后力线显示
+	【06】钢板固定导航
 
 【术后评估】：
-	【完成】术后力线验证 显示偏移量</string>
+	【01】术后力线验证 显示偏移量</string>
         </property>
        </widget>
       </widget>
@@ -1139,24 +1136,28 @@ p, li { white-space: pre-wrap; }
            <property name="title">
             <string>设备连接状态</string>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout_4">
-            <item>
-             <widget class="QmitkToolTrackingStatusWidget" name="showVegaTool_StatusWidget02" native="true">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>200</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>50</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-           </layout>
+           <widget class="QmitkToolTrackingStatusWidget" name="showVegaTool_StatusWidget02" native="true">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>20</y>
+              <width>391</width>
+              <height>200</height>
+             </rect>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>200</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>50</height>
+             </size>
+            </property>
+           </widget>
           </widget>
          </item>
          <item>
@@ -2952,7 +2953,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
       <property name="text">
-       <string>春立-HTO_NDI Demo Version 3.2</string>
+       <string>春立-HTO_NDI Demo Version 3.3</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_42">
@@ -2971,7 +2972,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
       <property name="text">
-       <string>Updated Date: 2024.08.29</string>
+       <string>Updated Date: 2024.09.01</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_43">

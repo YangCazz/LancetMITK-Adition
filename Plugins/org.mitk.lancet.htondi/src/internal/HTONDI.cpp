@@ -78,7 +78,6 @@ void HTONDI::CreateQtPartControl(QWidget *parent)
 
   // -. ≤‚ ‘“≥
   CreateQT_FuncTest();
-
 }
 
 void HTONDI::ParamInit()
