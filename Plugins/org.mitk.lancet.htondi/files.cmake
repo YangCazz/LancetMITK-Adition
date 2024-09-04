@@ -21,13 +21,6 @@ set(UI_FILES
 set(MOC_H_FILES
   src/internal/org_mitk_lancet_htondi_Activator.h
   src/internal/HTONDI.h
-  src/internal/HTONDI_Basic.h
-  src/internal/HTONDI_MoveData.h
-  src/internal/HTONDI_PreoperativePlan.h
-  src/internal/HTONDI_MidPlan.h
-  src/internal/HTONDI_MidOperation.h
-  src/internal/HTONDI_PostoperativeValid.h
-  src/internal/HTONDI_TestModel.h
 )
 
 # list of resource files which can be used by the plug-in

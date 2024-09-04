@@ -79,7 +79,7 @@ public slots:
 	bool OnLinkSurfaceClicked();
 
 	void RenewSaw();
-	
+	void RenewDrill();
 	// =================================================================
 
 	// ========================== 术前校准 ==============================
@@ -470,10 +470,17 @@ protected:
   // 当前-探针尖端点在Image下的位置
   Eigen::Vector4d m_CurrentTipOnImage;
 
+  // 定义磨钻末端点在磨钻物理坐标系下的点位置
+  Eigen::Vector4d m_DrillPointOnCalibratorRF_head;
+  Eigen::Vector4d m_DrillPointOnCalibratorRF_tail = { 120.0, 0.0, 0.0, 1.0 };
 
   // 定义器械标定点在RF下的位置
   std::vector<Eigen::Vector4d> m_SawPointsOnSawRF;
   std::vector<Eigen::Vector4d> m_DrillPointsOnDrillRF;
+
+  // 磨钻在RF下的轴向向量
+  Eigen::Vector4d m_DrillAxisOnDrillRF;
+
   //// 当前器械标定点在Camera下的位置
   //Eigen::Matrix4d m_CurrentSawPointsOnCamera;
   //Eigen::Matrix4d m_CurrentDrillPointsOnCamera;
@@ -553,6 +560,9 @@ protected:
   // 摆锯电源状态控制
   bool m_SawPower = false;
   bool m_DrillPower = false;
+
+  // 磨钻标定参数
+
 
   Ui::HTONDIControls m_Controls;
 };

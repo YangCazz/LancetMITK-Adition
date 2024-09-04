@@ -21,7 +21,7 @@ All rights reserved.
 #include "mitkTrackingTool.h"
 #include "surfaceregistraion.h"
 #include "vtkPlaneSource.h"
-
+#include "mitkMatrix.h"
 
 
 // lancet
@@ -332,6 +332,9 @@ bool HTONDI::OnLoadDeviceLandmarkClicked()
 
 	====== 更新0823 ======
 	不需要再注册表面，直接用于展示物体模型与数据注册
+
+	====== 更新0902 ======
+	更新磨钻标定信息装载: 工具安装点 + 轴向量
 	*/
 	m_Controls.textBrowser_Action->append("Action: Load Device Landmark Nodes.");
 
@@ -943,80 +946,123 @@ bool HTONDI::OnCalibrateSawClicked()
 bool HTONDI::OnCalibrateDrillClicked()
 {
 	/* 器械标定-磨钻标定
-	1. 记录探针针尖位置，探针针尖的位置也就代表了磨钻标定点的位置，
-	2. 记录摆锯标定点位置[由外向内] 3 个点
-	3. 计算m_DrillPointsOnDrillRF = T_CameraToTool.inverse() * m_DrillPointsOnCamera
+	1. 借助标定器CalibratorRF来完成Drill的标定
+	2. 计算m_DrillPointsOnDrillRF = T_CameraToTool.inverse() * m_DrillPointsOnCamera
+	3. 计算m_DrillAxisOnDrillRF = T_CameraToTool.inverse() * m_DrillAxisOnCamera
 
 	====== 修改0821 ======
 	这里只计算并记录得到摆锯标定点的位置m_DrillPointsOnDrillRF = Metrix[4,3]
 
 	====== 注释0823 ======
 	需要添加磨钻的误差计算方法，待确认
+
+	====== 修改0902 ======
+	修改标定方法
 	*/
 
-	m_Controls.textBrowser_Action->append("Action: Calibrate Drill Node.");
+	m_Controls.textBrowser_Action->append("Action: Calibrate Drill Node and Axis.");
 
+	cout << "test 01" << endl;
 
-	// 1. 记录探针针尖位置，探针针尖的位置也就代表了摆锯标定点的位置
+	// 1. 记录标定器的位置，可以直接得到其下的原点和杆末端坐标
 	// 获取探针和摆锯信息
-	auto probeIndex = m_VegaToolStorage->GetToolIndexByName("ProbeRF");
-	auto DrillRfIndex = m_VegaToolStorage->GetToolIndexByName("DrillRF");
-	if (probeIndex == -1 || DrillRfIndex == -1)
+	auto CalibratorRFIndex = m_VegaToolStorage->GetToolIndexByName("CalibratorRF");
+	auto DrillRFIndex = m_VegaToolStorage->GetToolIndexByName("DrillRF");
+	if (CalibratorRFIndex == -1 || DrillRFIndex == -1)
 	{
-		m_Controls.textBrowser_Action->append("There is no 'Probe' or 'DrillRF' in the toolStorage!");
+		m_Controls.textBrowser_Action->append("There is no 'CalibratorRF' or 'DrillRF' in the toolStorage!");
 		return false;
 	}
 
-	// 依据存储数据的数量，获取需要的探针尖端点的位置信息
-	if (m_DrillPointsOnDrillRF.size() < 3)
+
+	cout << "test 02" << endl;
+	// 判断是否已经完成标定
+	// m_DrillPointsOnDrillRF 记录AB点坐标
+	// m_DrillAxisOnDrillRF   记录BA向量
+	if (m_DrillPointsOnDrillRF.size() == 0)
 	{
-		m_Controls.textBrowser_Action->append("Get " + QString::number(m_DrillPointsOnDrillRF.size()) + "-th Drill Point");
+		cout << "test 03" << endl;
 
-		// 获取 ProbeRF 在 NDI 中的位置和方向数据
-		mitk::NavigationData::Pointer nd_ndiToProbe = m_VegaSource->GetOutput(probeIndex);
+		m_Controls.textBrowser_Action->append("Use Calibrator for Drill Calibrate.");
 
-		// 获取 SawRF 在 NDI 中的位置和方向数据
-		mitk::NavigationData::Pointer nd_ndiToObjectRf = m_VegaSource->GetOutput(DrillRfIndex);
+		// 获取 CalibratorRF 在 NDI 中的位置和方向数据
+		mitk::NavigationData::Pointer nd_ndiToCalibratorRF = m_VegaSource->GetOutput(CalibratorRFIndex);
 
-		// 将 ProbeTipOnCameraRF 转化为 ProbeTipOnSawRF
-		// 也就是将标定点的 SawPointsOnCameraRF 转化为 SawPointsOnSawRF
-		mitk::NavigationData::Pointer nd_rfToProbe = GetNavigationDataInRef(nd_ndiToProbe, nd_ndiToObjectRf);
+		// 获取 DrillRF 在 NDI 中的位置和方向数据
+		mitk::NavigationData::Pointer nd_ndiToDrillRF = m_VegaSource->GetOutput(DrillRFIndex);
 
-		// 提取转化后的标定点信息
-		mitk::Point3D probeTipPointUnderRf = nd_rfToProbe->GetPosition();
+		// 将 DrillPointOnCameraRF 转化为 DrillPointOnDrillRF
+		mitk::NavigationData::Pointer nd_CalibratorRFToDrillRF = GetNavigationDataInRef(nd_ndiToCalibratorRF, nd_ndiToDrillRF);
+
+		// 获取仿射变换矩阵
+		mitk::AffineTransform3D::MatrixType matrix_CalibratorRFToDrillRF = nd_CalibratorRFToDrillRF->GetAffineTransform3D()->GetMatrix();
+
+		// 将 mitk::AffineTransform3D 的矩阵转换为 Eigen::Matrix4d
+		Eigen::Matrix4d T_CalibratorRFToDrillRF;
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				T_CalibratorRFToDrillRF(i, j) = matrix_CalibratorRFToDrillRF(i, j);
+			}
+		}
+
+		cout << "test 04" << endl;
+
+		// 提取转化后的标定点信息-A
+		mitk::Point3D DrillPointsOnDrillRF_A = nd_CalibratorRFToDrillRF->GetPosition();
+		// 提取转化后的标定点信息-B, 将其转化到摆锯坐标系下
+		Eigen::Vector4d DrillPointsOnDrillRF_B = T_CalibratorRFToDrillRF * m_DrillPointOnCalibratorRF_tail;
+
 
 		// 存储到全局位置 m_SawPointsOnSawRF [X, Y, Z, 1.0]
-		// 共计 3 个
-		Eigen::Vector4d CurrentDrillPointsOnSawRF =
+		// 共计 2 个
+		Eigen::Vector4d CurrentDrillPointsOnDrillRF =
 		{
-			probeTipPointUnderRf[0],
-			probeTipPointUnderRf[1],
-			probeTipPointUnderRf[2],
+			DrillPointsOnDrillRF_A[0],
+			DrillPointsOnDrillRF_A[1],
+			DrillPointsOnDrillRF_A[2],
 			1.0
 		};
 
+		cout << "test 05" << endl;
+
 		// 将计算得到的探针尖端位置添加到 点集 中
-		m_DrillPointsOnDrillRF.push_back(CurrentDrillPointsOnSawRF);
+		m_DrillPointsOnDrillRF.push_back(CurrentDrillPointsOnDrillRF);
+		m_DrillPointsOnDrillRF.push_back(DrillPointsOnDrillRF_B);
+
+		cout << "test 06" << endl;
 
 		// 打印信息
-		m_Controls.textBrowser_Action->append("Add CurrentDrillPointsOnSawRF: "
-			+ QString::number(CurrentDrillPointsOnSawRF[0]) +
-			"/ " + QString::number(CurrentDrillPointsOnSawRF[1]) +
-			"/ " + QString::number(CurrentDrillPointsOnSawRF[2])
+		m_Controls.textBrowser_Action->append("Add CurrentDrillPointsOnDrillRF_A: "
+			     + QString::number(CurrentDrillPointsOnDrillRF[0]) +
+			"/ " + QString::number(CurrentDrillPointsOnDrillRF[1]) +
+			"/ " + QString::number(CurrentDrillPointsOnDrillRF[2])
 		);
+
+		m_Controls.textBrowser_Action->append("Add CurrentDrillPointsOnDrillRF_B: "
+			+ QString::number(DrillPointsOnDrillRF_B[0]) +
+			"/ " + QString::number(DrillPointsOnDrillRF_B[1]) +
+			"/ " + QString::number(DrillPointsOnDrillRF_B[2])
+		);
+
+		m_Controls.textBrowser_Action->append("Drill Calibrated done.");
 	}
-	else if (m_DrillPointsOnDrillRF.size() == 3)
+	else if (m_DrillPointsOnDrillRF.size() == 2)
 	{
-		m_Controls.textBrowser_Action->append("Get Enough Drill Points.");
+		m_Controls.textBrowser_Action->append("Drill Calibrated done.");
 		// ============== 需要添加误差计算方法 ================
 		double DrillError = 0.0;
 		// ==================================-================
 		m_Controls.textBrowser_CalibrateRes->append("Current Saw Calibrate ERROR: " + QString::number(DrillError));
 	}
+	else
+	{
+		m_Controls.textBrowser_Action->append("Drill Calibrated ERROR.");
+	}
 
 	// 其它情况
 	return false;
 }
+
 bool HTONDI::OnSawVisualizeClicked()
 {
 	/* 摆锯可视化 */
@@ -1231,7 +1277,11 @@ bool HTONDI::CollectFemurData()
 		return false;
 	}
 	cout << "test 04-02" << endl;
+	
+	// 记录下这些点的坐标
 	mitk::NavigationData::Pointer nd_ndiToFemur = m_VegaSource->GetOutput(femurIndex);
+
+
 	if (nd_ndiToFemur)
 	{
 		Eigen::Vector3d position(nd_ndiToFemur->GetPosition()[0], nd_ndiToFemur->GetPosition()[1], nd_ndiToFemur->GetPosition()[2]);

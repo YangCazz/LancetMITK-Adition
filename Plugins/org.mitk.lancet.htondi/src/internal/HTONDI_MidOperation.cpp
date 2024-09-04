@@ -44,6 +44,17 @@ HTONDI_MidOperation.cpp
 
 void HTONDI::UpdateHTODrill()
 {
+	/* 实时磨钻导航
+	1. 影像实时磨钻导航---初始状态进行投影, 后续状态进行实时更新
+	2. 计算摆锯前端点位置
+	3. 计算前端点到目标点差距
+	4. 进行磨钻深度导航
+
+	====== 修改0903 ======
+	修改磨钻导航方法，采 用点 + 方向向量 的计算方法进行初始位置矫正
+	*/
+
+	// 1. 进行影像投影计算
 	cout << "test drill 01" << endl;
 	if (GetDataStorage()->GetNamedNode("Drill") == nullptr)
 	{
@@ -62,24 +73,24 @@ void HTONDI::UpdateHTODrill()
 	cout << "test drill 03" << endl;
 
 	// Get T_Camera_To_DrillRF
-	mitk::NavigationData::Pointer nd_ndiToProbe = m_VegaSource->GetOutput(drillIndex);
+	mitk::NavigationData::Pointer nd_ndiToDrill = m_VegaSource->GetOutput(drillIndex);
 	// Get T_Camera_To_TibiaRF
 	mitk::NavigationData::Pointer nd_ndiToObjectRf = m_VegaSource->GetOutput(objectRfIndex);
 
-	if (nd_ndiToObjectRf->IsDataValid() == 0 || nd_ndiToProbe->IsDataValid() == 0)
+	if (nd_ndiToObjectRf->IsDataValid() == 0 || nd_ndiToDrill->IsDataValid() == 0)
 	{
 		return;
 	}
 
 	cout << "test drill 04" << endl;
 	// Get T_TibiaRF_To_DrillRF
-	mitk::NavigationData::Pointer nd_rfToProbe = GetNavigationDataInRef(nd_ndiToProbe, nd_ndiToObjectRf);
+	mitk::NavigationData::Pointer nd_rfToDrill = GetNavigationDataInRef(nd_ndiToDrill, nd_ndiToObjectRf);
 
 	cout << "test drill 05" << endl;
 	// Get N_DrillRF_Under_TibiaRF
 	
-	vtkNew<vtkMatrix4x4> vtkMatrix_rfToProbe;
-	mitk::TransferItkTransformToVtkMatrix(nd_rfToProbe->GetAffineTransform3D().GetPointer(), vtkMatrix_rfToProbe);
+	vtkNew<vtkMatrix4x4> vtkMatrix_rfToDrill;
+	mitk::TransferItkTransformToVtkMatrix(nd_rfToDrill->GetAffineTransform3D().GetPointer(), vtkMatrix_rfToDrill);
 
 	cout << "test drill 06" << endl;
 	// Get T_TibiaRF_To_Image
@@ -92,14 +103,14 @@ void HTONDI::UpdateHTODrill()
 	// T_TibiaRF_To_Image.inverse() * T_TibiaRF_To_DrillRF = T_Image_To_DrillRF
 	vtkNew<vtkTransform> tmpTrans;
 	tmpTrans->PostMultiply();
-	tmpTrans->SetMatrix(vtkMatrix_rfToProbe);
+	tmpTrans->SetMatrix(vtkMatrix_rfToDrill);
 	tmpTrans->Concatenate(imageToRfMatrix);
 	tmpTrans->Update();
 
-	// 以上计算出了磨钻表面的投影关系，但是初始加载的摆锯表面位置却不一定正确，需要修正
+	// 以上计算出了磨钻表面的投影关系，但是初始加载的磨钻表面位置却不一定正确，需要修正
 	if (start_drill == false)
 	{	
-		/* 在初始情况下，landmark点的位置是实际位置，这个时候可以借助这个点集来计算 */
+		/* 在初始情况下，landmark点的位置是last位置，这个时候可以借助这个点集来计算 */
 		// 将T_Image_To_DrillRF转化为Eigen::Matrix4d格式
 		cout << "test drill 08-01" << endl;
 		Eigen::Matrix4d T_Image_To_DrillRF;
@@ -115,10 +126,17 @@ void HTONDI::UpdateHTODrill()
 			m_DrillPointsOnDrillRF4d.col(i) = m_DrillPointsOnDrillRF[i];
 		}
 
-		// 计算current位置
+		// 计算current位置的 A2 和 B2
 		Eigen::Matrix4Xd N_TP_Under_Image_Recent = T_Image_To_DrillRF * m_DrillPointsOnDrillRF4d;
 
-		// 取出last位置
+		// recent
+		// 计算方向向量 n2 = B2_A2
+		Eigen::Vector4d tmp1 = N_TP_Under_Image_Recent.col(0) - N_TP_Under_Image_Recent.col(1);
+		Eigen::Vector3d n2 = { tmp1[0], tmp1[1], tmp1[2] };
+		n2.normalize();
+
+		// last
+		// 取出last位置: 钉子模型的 前端点 A 和 末端点 B
 		// 取出landmark点同样转化为矩阵 [4,n]
 		auto pointSet_landmark = drill_image->GetLandmarks();
 		Eigen::Matrix4Xd N_TP_Under_Image_Last(4, pointSet_landmark->GetSize());
@@ -129,8 +147,33 @@ void HTONDI::UpdateHTODrill()
 			N_TP_Under_Image_Last(3, i) = 1;
 		}
 
-		// 计算转化矩阵T_Current
-		Eigen::Matrix4Xd T_Current = N_TP_Under_Image_Recent * N_TP_Under_Image_Last.inverse();
+		// 计算方向向量 n1 = B1_A1
+		Eigen::Vector4d tmp2 = N_TP_Under_Image_Last.col(0) - N_TP_Under_Image_Last.col(1);
+		Eigen::Vector3d n1 = { tmp2[0], tmp2[1], tmp2[2] };
+		n1.normalize();
+
+		// 计算旋转矩阵 n1->n2
+		// 无法直接使用矩阵计算，这里使用角度计算方法
+		Eigen::Vector3d axis = n1.cross(n2);
+		double angle = std::acos(n1.dot(n2));
+		// 取出旋转矩阵
+		Eigen::AngleAxisd rotation(angle, axis);
+		Eigen::Matrix3d T_Current_Rotation = rotation.toRotationMatrix();
+
+		// 平移变化 B1 -> B2
+		// T_current_Trans =  B2 - B1
+		// 注意存储的点下标
+		Eigen::Vector4d T_Current_Translate = N_TP_Under_Image_Recent.col(1) - N_TP_Under_Image_Last.col(1);
+
+		// 拼接变化矩阵
+		Eigen::Matrix4Xd T_Current = Eigen::Matrix4d::Identity();
+		// 复制旋转矩阵到左上角
+		T_Current.block<3, 3>(0, 0) = T_Current_Rotation;
+		// 复制平移向量到第四列
+		T_Current.col(3).head(3) = T_Current_Translate.head(3);
+		// 设置最后一行
+		T_Current.row(3) << 0, 0, 0, 1;
+
 		
 		// T_Current转化回 vtkMatrix4x4
 		vtkNew<vtkMatrix4x4> T_Current_vtk;
@@ -144,6 +187,9 @@ void HTONDI::UpdateHTODrill()
 		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
 		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->Modified();
 
+		GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
+		GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->Modified();
+
 		// 更新标准位
 		start_drill = true;
 	}
@@ -152,6 +198,9 @@ void HTONDI::UpdateHTODrill()
 		cout << "test drill 08-02" << endl;
 		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
 		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->Modified();
+
+		GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
+		GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->Modified();
 	}
 }
 
@@ -224,7 +273,7 @@ void HTONDI::UpdateHTOSaw()
 			}
 		}
 
-		// 将m_DrillPointsOnDrillRF转化为矩阵 [4,n]
+		// 将m_SawPointsOnSawRF转化为矩阵 [4,n]
 		Eigen::Matrix4Xd m_SawPointsOnSawRF4d(4, m_SawPointsOnSawRF.size());
 		for (int i = 0; i < m_SawPointsOnSawRF.size(); i++) {
 			m_SawPointsOnSawRF4d.col(i) = m_SawPointsOnSawRF[i];
@@ -521,6 +570,11 @@ bool HTONDI::OnStartAxialGuideClicked()
 void HTONDI::RenewSaw()
 {
 	UpdateHTOSaw();
+}
+
+void HTONDI::RenewDrill()
+{
+	UpdateHTODrill();
 }
 
 // 术中导航
@@ -1548,6 +1602,9 @@ bool HTONDI::OnStartDrillGuideClicked()
 		m_HTODrillUpdateTimer = new QTimer(this);
 	}
 	m_Controls.textBrowser_Action->append("Generate Real time Drill");
+
+	// 先更新到合适的位置
+	UpdateHTODrill();
 
 	disconnect(m_HTODrillUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTODrill()));
 	connect(m_HTODrillUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTODrill()));

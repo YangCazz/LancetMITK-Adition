@@ -96,34 +96,70 @@ void HTONDI::ParamInit()
 
 	*/
 
-	// 初始化定义物体的文本定义
-	std::string femurHeadPointSet = "femurHeadPointSet";
-	std::string hipCenterPoint = "hipCenterPoint";
-	std::string femurTrochanterPoint = "femurTrochanterPoint";
-	std::string femurLateralMalleolusPoint = "femurLateralMalleolusPoint";
-	std::string femurMedialMalleolusPoint = "femurMedialMalleolusPoint";
-	std::string femurLandmarkPointSet = "femurLandmarkPointSet";
+	// 器械参考阵列命名
+	std::string name_RF_Femur = "FemurRF";
+	std::string name_RF_Tibia = "TibiaRF";
+	std::string name_RF_Probe = "ProbeRF";
+	std::string name_RF_Saw = "SawRF";
+	std::string name_RF_Drill = "DrillRF";
+	std::string name_RF_Calibrator = "CalibratorRF";
+
+	// 左右腿 - 0左腿 1右腿
+	bool type_Leg = 0;
+
+	// 骨表面点
 
 
-	std::string tibiaProximalLateralPoint = "tibiaProximalLateralPoint";
-	std::string tibiaProximalMedialPoint = "tibiaProximalMedialPoint";
-	std::string tibiaDistalLateralPoint = "tibiaDistalLateralPoint";
-	std::string tibiaDistalMedialPoint = "tibiaDistalMedialPoint";
-	std::string tibiaLandmarkPointSet = "tibiaLandmarkPointSet";
+	// 1.1. 术前规划01
+	// PT点集 SF表面 ND点 + 用途
+
+	// 装载准备好的数据
+	std::string name_PT_FemurHead_Fit = "femurHeadPointSet";
+	std::string name_PT_Femur_Landmark = "femurLandmarkPointSet";
+	std::string name_PT_Tibia_Landmark = "tibiaLandmarkPointSet";
+	std::string name_PT_Drill_Landmark = "DrillLandMarkPointSet";
+	std::string name_PT_Saw_Landmark = "SawLandMarkPointSet";
+	std::string name_PT_SteelPlate = "steelPlatePointSet";
+
+	std::string name_SF_FemurSurface = "femurSurface";
+	std::string name_SF_TibiaSurface = "tibiaSurface";
+	std::string name_SF_Probe = "Probe";
+	std::string name_SF_Saw = "Saw";
+	std::string name_SF_Drill = "Drill";
+	std::string name_SF_SteelPlate = "steelPlate";
+
+	std::string name_ND_TibiaSurface = "femoralHead";
+
+	// 1.2. 术前规划02
+
+	// 截骨面规划
+	std::string name_SF_CutPlaneAxial = "1st cut plane";
+	std::string name_SF_CutPlaneSag = "2nd cut plane";
+
+	std::string name_SF_ProximalTibiaSurface = "proximal tibiaSurface";
+	std::string name_SF_DistalTibiaSurface = "distal tibiaSurface";
+
+	std::string name_PT_PointsInCutPlaneAxial = "pointSetInPlaneCutPlane1";
+
+	std::string name_ND_legForceLine01 = "legForceLine";
+	std::string name_ND_legForceLine02 = "legForceLineNew";
+	std::string name_ND_legForceLine03 = "legForceLineLast";
+
+	std::string name_ND_TibiaSurface = "ankleCenterPoint";
+	std::string name_ND_TibiaSurface = "ankleCenterPointNew";
+
+	std::string name_PT_PointsInCutPlaneAxial = "tibiaDistalPointSet";
+
+	// 2. 术中注册
 
 
-	std::string femurSurface = "femurSurface";
-	std::string tibiaSurface = "tibiaSurface";
+	// 3. 术中导航
 
-	std::string cutPlane01 = "1st cut plane";
-	std::string cutPlane02 = "2nd cut plane";
 
-	std::string pointOnCutPlane01 = "pointSetInPlaneCutPlane1";
-	std::string proximalTibiaSurface = "proximal tibiaSurface";
-	std::string distalTibiaSurface = "distal tibiaSurface";
+	// 4. 术后验证
 
-	std::string legForceLine = "legForceLine";
-	std::string ankleCenterPoint = "ankleCenterPoint";
+
+
 
 }
 
@@ -180,7 +216,10 @@ void HTONDI::CreateQT_FuncTest()
 	connect(m_Controls.pushButton_HTO_Collect_landmark, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaLandmarkClicked);
 	connect(m_Controls.pushButton_HTO_Collect_lcp, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaICPClicked);
 	connect(m_Controls.pushButton_HTO_Caculate_regis, &QPushButton::clicked, this, &HTONDI::OnCollectHTOTibiaRegisClicked);
+
+	// 更新摆锯磨钻位置
 	connect(m_Controls.pushButton_Renew_Saw, &QPushButton::clicked, this, &HTONDI::RenewSaw);
+	connect(m_Controls.pushButton_Renew_Drill, &QPushButton::clicked, this, &HTONDI::RenewDrill);
 }
 
 void HTONDI::CreateQT_MoveData()
