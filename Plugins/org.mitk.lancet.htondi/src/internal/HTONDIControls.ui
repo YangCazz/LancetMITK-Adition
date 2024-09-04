@@ -30,7 +30,7 @@
        <rect>
         <x>10</x>
         <y>610</y>
-        <width>861</width>
+        <width>871</width>
         <height>231</height>
        </rect>
       </property>
@@ -193,14 +193,14 @@ p, li { white-space: pre-wrap; }
        <widget class="QGroupBox" name="groupBox_15">
         <property name="geometry">
          <rect>
-          <x>40</x>
+          <x>350</x>
           <y>40</y>
-          <width>261</width>
+          <width>271</width>
           <height>81</height>
          </rect>
         </property>
         <property name="title">
-         <string>基本数据准备【点击01】</string>
+         <string>基本数据准备【点击02】</string>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
@@ -228,18 +228,18 @@ p, li { white-space: pre-wrap; }
        <widget class="QGroupBox" name="groupBox_18">
         <property name="geometry">
          <rect>
-          <x>320</x>
+          <x>40</x>
           <y>40</y>
           <width>281</width>
           <height>81</height>
          </rect>
         </property>
         <property name="title">
-         <string>手术类型选择【点击02】</string>
+         <string>手术类型选择【点击01】</string>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_4">
          <item>
-          <widget class="QCheckBox" name="checkBox">
+          <widget class="QCheckBox" name="checkBox_LeftlimbHTO">
            <property name="layoutDirection">
             <enum>Qt::LeftToRight</enum>
            </property>
@@ -255,7 +255,7 @@ p, li { white-space: pre-wrap; }
           </widget>
          </item>
          <item>
-          <widget class="QCheckBox" name="checkBox_2">
+          <widget class="QCheckBox" name="checkBox_RightlimbHTO">
            <property name="layoutDirection">
             <enum>Qt::LeftToRight</enum>
            </property>
@@ -275,9 +275,9 @@ p, li { white-space: pre-wrap; }
        <widget class="QLabel" name="label_4">
         <property name="geometry">
          <rect>
-          <x>20</x>
+          <x>40</x>
           <y>130</y>
-          <width>601</width>
+          <width>581</width>
           <height>381</height>
          </rect>
         </property>
@@ -285,15 +285,15 @@ p, li { white-space: pre-wrap; }
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap>C:/Users/zhouz/Desktop/ChunLi_HTO_0910DDL/图片2.png</pixmap>
+         <pixmap>C:/Users/zhouz/Desktop/ChunLi_HTO_0910DDL/9.RawCode_Versions/HTO_NDI_demo_v3.3/HTO_MITK_Images/Image_LimbPoints.png</pixmap>
         </property>
        </widget>
        <widget class="QGroupBox" name="groupBox_17">
         <property name="geometry">
          <rect>
-          <x>660</x>
+          <x>650</x>
           <y>40</y>
-          <width>191</width>
+          <width>201</width>
           <height>481</height>
          </rect>
         </property>
@@ -416,6 +416,20 @@ p, li { white-space: pre-wrap; }
           <widget class="QCheckBox" name="checkBox_point16">
            <property name="text">
             <string>钻头标定点</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox_point17">
+           <property name="text">
+            <string>探针模型</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox_point18">
+           <property name="text">
+            <string>固定钉模型</string>
            </property>
           </widget>
          </item>
@@ -2564,7 +2578,7 @@ p, li { white-space: pre-wrap; }
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>27</height>
+             <height>30</height>
             </size>
            </property>
            <property name="text">
@@ -2577,7 +2591,7 @@ p, li { white-space: pre-wrap; }
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>27</height>
+             <height>30</height>
             </size>
            </property>
            <property name="text">
@@ -2605,7 +2619,7 @@ p, li { white-space: pre-wrap; }
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>27</height>
+             <height>30</height>
             </size>
            </property>
            <property name="text">
@@ -2618,7 +2632,7 @@ p, li { white-space: pre-wrap; }
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>27</height>
+             <height>30</height>
             </size>
            </property>
            <property name="text">

@@ -347,6 +347,9 @@ protected:
   
 
   // ========================= 术前规划 ==============================
+  // 手术类型注册-默认为左腿
+  // 0:右腿. 1：左腿
+  int judgModel_flag = 1;
   bool CreateOneCutPlane();
   bool CutTibiaWithOnePlane();
   bool CutTibiaWithTwoPlanes();
@@ -377,8 +380,7 @@ protected:
   double Line_length;//力线的长度
   double angleInDegrees;//撑开角度
 
-  // 数据注册
-  int judgModel_flag = 1;
+
   mitk::PointSet::Pointer mitkPointSet1 = mitk::PointSet::New();
  
 

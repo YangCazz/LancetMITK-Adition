@@ -36,7 +36,7 @@ All rights reserved.
 /*========================= 术前规划 ==================================
 HTONDI_PreoperativePlan.cpp
 ----------------------------------------------------------------
-== 校验数据准备
+== 1.校验数据准备
 == 截骨面规划
 == 下肢力线规划
 == 撑开角度规划
@@ -46,11 +46,11 @@ HTONDI_PreoperativePlan.cpp
 
 
 
-// 校验数据准备
+// 1.校验数据准备
 bool HTONDI::OnCheckBaseDataClicked()
 {
 	// 校验调试过程的数据完备性
-	m_Controls.textBrowser_Action->append("Action: Check Base data.");
+	m_Controls.textBrowser_Action->append("Action_01: Check Base data.");
 	auto femurLandmark = GetDataStorage()->GetNamedNode("femurLandmarkPointSet");
 	auto tibiaLandmark = GetDataStorage()->GetNamedNode("tibiaLandmarkPointSet");
 	auto femurHeadPoints = GetDataStorage()->GetNamedNode("femoralHead");
@@ -62,6 +62,20 @@ bool HTONDI::OnCheckBaseDataClicked()
 	auto SawPoints = GetDataStorage()->GetNamedNode("SawLandMarkPointSet");
 	auto Drill = GetDataStorage()->GetNamedNode("Drill");
 	auto DrillPoints = GetDataStorage()->GetNamedNode("DrillLandMarkPointSet");
+	auto LinkPin = GetDataStorage()->GetNamedNode("linkPin");
+	auto Probe = GetDataStorage()->GetNamedNode("Probe_forVisual");
+
+	// 确认手术模型的模式
+	if (m_Controls.checkBox_LeftlimbHTO->isChecked())
+	{
+		judgModel_flag = 1;
+		m_Controls.textBrowser_Action->append("Set action mode as Left Limb!");
+	}
+	else if (m_Controls.checkBox_RightlimbHTO->isChecked())
+	{
+		judgModel_flag = 0;
+		m_Controls.textBrowser_Action->append("Set action mode as Right Limb!");
+	}
 
 	if (femurLandmark)
 	{
@@ -161,6 +175,20 @@ bool HTONDI::OnCheckBaseDataClicked()
 		DrillPoints->SetVisibility(false);
 
 	}
+	if (LinkPin)
+	{
+		m_Controls.textBrowser_Action->append("load LinkPin.");
+		m_Controls.checkBox_point17->setChecked(true);
+		LinkPin->SetVisibility(false);
+
+	}
+	if (Probe)
+	{
+		m_Controls.textBrowser_Action->append("load Probe.");
+		m_Controls.checkBox_point18->setChecked(true);
+		Probe->SetVisibility(false);
+
+	}
 
 	GetDataStorage()->Modified();
 	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
@@ -242,10 +270,11 @@ bool HTONDI::OnGenerateCutPlaneClicked()
 
 		// 进行旋转计算
 		double vx, vy, vz, length;
-
-		// 0：左腿，1:右腿
+		double angle;
+		// 0:右腿. 1：左腿
 		// 计算旋转轴单位向量
 		if (judgModel_flag == 0) {
+			cout << "Left Limb" << endl;
 			// 计算左腿旋转分量 == 左上->左下 == 向外
 			double vx_1 = mitkPointSet1->GetPoint(2)[0] - mitkPointSet1->GetPoint(1)[0];
 			double vy_1 = mitkPointSet1->GetPoint(2)[1] - mitkPointSet1->GetPoint(1)[1];
@@ -255,8 +284,11 @@ bool HTONDI::OnGenerateCutPlaneClicked()
 			vy = vy_1;
 			vz = vz_1;
 			length = length_1;
+			// 右腿: B->A, 顺时针110°
+			angle = 110.0;
 		}
 		else if (judgModel_flag == 1) {
+			cout << "Right Limb" << endl;
 			// 计算右腿旋转分量
 			// 截骨面对称变化，原来的截骨面是用的
 			double vx_2 = mitkPointSet1->GetPoint(1)[0] - mitkPointSet1->GetPoint(2)[0];
@@ -267,14 +299,12 @@ bool HTONDI::OnGenerateCutPlaneClicked()
 			vy = vy_2;
 			vz = vz_2;
 			length = length_2;
+			// 左腿: A->B, 逆时针110°
+			angle = -110.0;
 		}
 
 		// 旋转分量标准化
 		double direction[3]{ vx / length, vy / length, vz / length };
-
-		// 左腿: A->B, 逆时针110°
-		// 右腿: B->A, 逆时针110°
-		double angle = -110.0;
 
 		// 计算截骨线中心点
 		double center[3];
@@ -288,9 +318,6 @@ bool HTONDI::OnGenerateCutPlaneClicked()
 	}
 
 	// 最后， 将几个标志点进行展示
-
-
-
 	// 通知数据存储需要更新其内部状态，以便在需要时正确处理数据节点的更改
 	// 可以删除
 	GetDataStorage()->Modified();
@@ -1150,7 +1177,9 @@ bool HTONDI::OnCaculateStrechAngleClicked()
 	transPos[2] = newLegForceDirection[2] * Line_length + hipCenterPoint[2];
 	std::cout << "目标延长线上的点C坐标为: (" << transPos[0] << ", " << transPos[1] << ", " << transPos[2] << ")" << endl;
 
+	// 0:右腿. 1：左腿
 	if (judgModel_flag == 0) {
+		cout << "left Limb" << endl;
 		std::cout << "合页点为: (" << mitkPointSet1->GetPoint(3)[0] << ", " << mitkPointSet1->GetPoint(3)[1] << ", " << mitkPointSet1->GetPoint(3)[2] << ")" << endl;
 		auto tmp = GetDataStorage()->GetNamedNode("legForceLine");
 		if (tmp == nullptr)
@@ -1185,51 +1214,52 @@ bool HTONDI::OnCaculateStrechAngleClicked()
 		m_Controls.LineEdit_angle->setText(QString::number(angleInDegrees));
 		std::cout << "The angle between the two directions is: " << angleInDegrees << " degrees." << std::endl;
 		m_Controls.LineEdit_transAngle->setText(QString::number(angleInDegrees));
+
+		CaculateStrechHeigh();
+		// 这里的旋转会按照LinEdit中的数值来进行，数值在前面计算夹角的时候就被更新了
+		RotateMinus();
 	}
-	else
+	else if (judgModel_flag == 1)
 	{
-		if (judgModel_flag == 1)
+		cout << "Right Limb" << endl;
+		std::cout << "合页点为: (" << mitkPointSet1->GetPoint(0)[0] << ", " << mitkPointSet1->GetPoint(0)[1] << ", " << mitkPointSet1->GetPoint(0)[2] << ")" << endl;
+		auto tmp = GetDataStorage()->GetNamedNode("legForceLine");
+		if (tmp == nullptr)
 		{
-			std::cout << "合页点为: (" << mitkPointSet1->GetPoint(0)[0] << ", " << mitkPointSet1->GetPoint(0)[1] << ", " << mitkPointSet1->GetPoint(0)[2] << ")" << endl;
-			auto tmp = GetDataStorage()->GetNamedNode("legForceLine");
-			if (tmp == nullptr)
-			{
-				m_Controls.textBrowser_Action->append("legForceLine Not Found.");
-				return false;
-			}
-			auto linePointSet = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("legForceLine")->GetData());
-			//计算当前力线的向量；
-			double vx_1 = linePointSet->GetPoint(1)[0] - mitkPointSet1->GetPoint(0)[0];//当前力线终点-合页点
-			double vy_1 = linePointSet->GetPoint(1)[1] - mitkPointSet1->GetPoint(0)[1];
-			double vz_1 = linePointSet->GetPoint(1)[2] - mitkPointSet1->GetPoint(0)[2];
-			double length_1 = sqrt(pow(vx_1, 2) + pow(vy_1, 2) + pow(vz_1, 2));
-			double ux_1 = vx_1 / length_1;
-			double uy_1 = vy_1 / length_1;
-			double uz_1 = vz_1 / length_1;
-			double direction1[3]{ ux_1,uy_1,uz_1 };
-			//计算理想力线的向量
-			double vx_2 = transPos[0] - mitkPointSet1->GetPoint(0)[0];//理想力线终点-合页点
-			double vy_2 = transPos[1] - mitkPointSet1->GetPoint(0)[1];
-			double vz_2 = transPos[2] - mitkPointSet1->GetPoint(0)[2];
-			double length_2 = sqrt(pow(vx_2, 2) + pow(vy_2, 2) + pow(vz_2, 2));
-			double ux_2 = vx_2 / length_2;
-			double uy_2 = vy_2 / length_2;
-			double uz_2 = vz_2 / length_2;
-			double direction2[3]{ ux_2,uy_2,uz_2 };
-			// 计算两个方向向量之间的夹角
-			double dotProduct = direction1[0] * direction2[0] + direction1[1] * direction2[1] + direction1[2] * direction2[2]; // 点积
-			double angleInRadians = acos(dotProduct); // 使用反余弦函数得到角度的弧度值
-			double angleInDegrees = round(angleInRadians * (180.0 / M_PI)); // 将弧度转换为度数
-			m_Controls.LineEdit_angle->setText(QString::number(angleInDegrees));
-			std::cout << "The angle between the two directions is: " << angleInDegrees << " degrees." << std::endl;
-			m_Controls.LineEdit_transAngle->setText(QString::number(angleInDegrees));
+			m_Controls.textBrowser_Action->append("legForceLine Not Found.");
+			return false;
 		}
+		auto linePointSet = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("legForceLine")->GetData());
+		//计算当前力线的向量；
+		double vx_1 = linePointSet->GetPoint(1)[0] - mitkPointSet1->GetPoint(0)[0];//当前力线终点-合页点
+		double vy_1 = linePointSet->GetPoint(1)[1] - mitkPointSet1->GetPoint(0)[1];
+		double vz_1 = linePointSet->GetPoint(1)[2] - mitkPointSet1->GetPoint(0)[2];
+		double length_1 = sqrt(pow(vx_1, 2) + pow(vy_1, 2) + pow(vz_1, 2));
+		double ux_1 = vx_1 / length_1;
+		double uy_1 = vy_1 / length_1;
+		double uz_1 = vz_1 / length_1;
+		double direction1[3]{ ux_1,uy_1,uz_1 };
+		//计算理想力线的向量
+		double vx_2 = transPos[0] - mitkPointSet1->GetPoint(0)[0];//理想力线终点-合页点
+		double vy_2 = transPos[1] - mitkPointSet1->GetPoint(0)[1];
+		double vz_2 = transPos[2] - mitkPointSet1->GetPoint(0)[2];
+		double length_2 = sqrt(pow(vx_2, 2) + pow(vy_2, 2) + pow(vz_2, 2));
+		double ux_2 = vx_2 / length_2;
+		double uy_2 = vy_2 / length_2;
+		double uz_2 = vz_2 / length_2;
+		double direction2[3]{ ux_2,uy_2,uz_2 };
+		// 计算两个方向向量之间的夹角
+		double dotProduct = direction1[0] * direction2[0] + direction1[1] * direction2[1] + direction1[2] * direction2[2]; // 点积
+		double angleInRadians = acos(dotProduct); // 使用反余弦函数得到角度的弧度值
+		double angleInDegrees = round(angleInRadians * (180.0 / M_PI)); // 将弧度转换为度数
+		m_Controls.LineEdit_angle->setText(QString::number(angleInDegrees));
+		std::cout << "The angle between the two directions is: " << angleInDegrees << " degrees." << std::endl;
+		m_Controls.LineEdit_transAngle->setText(QString::number(angleInDegrees));
 
+		CaculateStrechHeigh();
+		// 这里的旋转会按照LinEdit中的数值来进行，数值在前面计算夹角的时候就被更新了
+		RotatePlus();
 	}
-	CaculateStrechHeigh();
-	// 这里的旋转会按照LinEdit中的数值来进行，数值在前面计算夹角的时候就被更新了
-	RotatePlus();
-
 	return true;
 }
 
@@ -1826,8 +1856,10 @@ void HTONDI::GetDistancefromTibia()
 	auto Point_0 = tmpPointSet2->GetPoint(0);
 	auto Point_1 = tmpPointSet2->GetPoint(1);
 
+	// 0:右腿. 1：左腿
 	if (judgModel_flag == 0)
 	{
+		cout << "left Limb" << endl;
 		distance1 = Point_0[2] - maxPoint[2];//截骨面末端距外侧平台
 		distance2 = sqrt(pow((Point_1[0] - minPoint[0]), 2) +
 			pow((Point_1[1] - minPoint[1]), 2) +
@@ -1849,8 +1881,10 @@ void HTONDI::GetDistancefromTibia()
 		m_Controls.LineEdit_depth->setText(QString::number(depth));
 	}
 	else {
+		// 0:右腿. 1：左腿
 		if (judgModel_flag == 1)
 		{
+			cout << "Right Limb" << endl;
 			distance1 = Point_0[2] - minPoint[2];//截骨面末端距外侧平台
 			distance2 = sqrt(pow((Point_1[0] - maxPoint[0]), 2) +
 				pow((Point_1[1] - maxPoint[1]), 2) +
