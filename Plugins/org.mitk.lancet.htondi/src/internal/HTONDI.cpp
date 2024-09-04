@@ -132,23 +132,23 @@ void HTONDI::ParamInit()
 
 	// 1.2. 术前规划02
 
-	// 截骨面规划
+	// 1.2.1 截骨面规划
 	std::string name_SF_CutPlaneAxial = "1st cut plane";
 	std::string name_SF_CutPlaneSag = "2nd cut plane";
-
 	std::string name_SF_ProximalTibiaSurface = "proximal tibiaSurface";
 	std::string name_SF_DistalTibiaSurface = "distal tibiaSurface";
-
 	std::string name_PT_PointsInCutPlaneAxial = "pointSetInPlaneCutPlane1";
 
+	// 1.2.3 力线规划
 	std::string name_ND_legForceLine01 = "legForceLine";
 	std::string name_ND_legForceLine02 = "legForceLineNew";
 	std::string name_ND_legForceLine03 = "legForceLineLast";
 
-	std::string name_ND_TibiaSurface = "ankleCenterPoint";
-	std::string name_ND_TibiaSurface = "ankleCenterPointNew";
+	std::string name_ND_AnkleCenter01 = "ankleCenterPoint";
+	std::string name_ND_AnkleCenter02 = "ankleCenterPointNew";
+	std::string name_ND_AnkleCenter03 = "ankleCenterPointLast";
 
-	std::string name_PT_PointsInCutPlaneAxial = "tibiaDistalPointSet";
+	std::string name_PT_TibiaDistalPointSet = "tibiaDistalPointSet";
 
 	// 2. 术中注册
 
