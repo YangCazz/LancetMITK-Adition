@@ -56,14 +56,16 @@ bool HTONDI::OnCheckBaseDataClicked()
 	auto femurHeadPoints = GetDataStorage()->GetNamedNode("femoralHead");
 	auto femur = GetDataStorage()->GetNamedNode("femurSurface");
 	auto tibia = GetDataStorage()->GetNamedNode("tibiaSurface");
-	auto steelPlate = GetDataStorage()->GetNamedNode("steelPlate");
-	auto steelPlatePoints = GetDataStorage()->GetNamedNode("steelPlatePointSet");
+	auto steelPlate = GetDataStorage()->GetNamedNode("SteelPlate");
+	auto steelPlatePoints = GetDataStorage()->GetNamedNode("SteelPlatePointSet");
 	auto Saw = GetDataStorage()->GetNamedNode("Saw");
 	auto SawPoints = GetDataStorage()->GetNamedNode("SawLandMarkPointSet");
 	auto Drill = GetDataStorage()->GetNamedNode("Drill");
 	auto DrillPoints = GetDataStorage()->GetNamedNode("DrillLandMarkPointSet");
-	auto LinkPin = GetDataStorage()->GetNamedNode("linkPin");
-	auto Probe = GetDataStorage()->GetNamedNode("Probe_forVisual");
+	auto LinkPin = GetDataStorage()->GetNamedNode("LinkPin");
+	auto LinkPinLandmark = GetDataStorage()->GetNamedNode("LinkPinLandMarkPointSet");
+	auto Probe = GetDataStorage()->GetNamedNode("Probe");
+	auto ProbeLandmark = GetDataStorage()->GetNamedNode("ProbeLandMarkPointSet");
 
 	// 确认手术模型的模式
 	if (m_Controls.checkBox_LeftlimbHTO->isChecked())
@@ -132,7 +134,7 @@ bool HTONDI::OnCheckBaseDataClicked()
 	// 工具类设置为不可见即可
 	if (steelPlate)
 	{
-		m_Controls.textBrowser_Action->append("load steelPlate.");
+		m_Controls.textBrowser_Action->append("load SteelPlate.");
 		m_Controls.checkBox_point11->setChecked(true);
 		steelPlate->SetVisibility(false);
 		// 记录下当前按钢板的初始位置==物体原点坐标
@@ -157,7 +159,7 @@ bool HTONDI::OnCheckBaseDataClicked()
 	// 工具标记点，设置landmark点
 	if (steelPlatePoints)
 	{
-		m_Controls.textBrowser_Action->append("load steelPlatePointSet.");
+		m_Controls.textBrowser_Action->append("load SteelPlatePointSet.");
 		m_Controls.checkBox_point14->setChecked(true);
 		steelPlatePoints->SetVisibility(false);
 	}
@@ -182,11 +184,25 @@ bool HTONDI::OnCheckBaseDataClicked()
 		LinkPin->SetVisibility(false);
 
 	}
+	if (LinkPinLandmark)
+	{
+		m_Controls.textBrowser_Action->append("load LinkPinLandMarkPointSet.");
+		m_Controls.checkBox_point17->setChecked(true);
+		LinkPinLandmark->SetVisibility(false);
+
+	}
 	if (Probe)
 	{
 		m_Controls.textBrowser_Action->append("load Probe.");
 		m_Controls.checkBox_point18->setChecked(true);
 		Probe->SetVisibility(false);
+
+	}
+	if (ProbeLandmark)
+	{
+		m_Controls.textBrowser_Action->append("load ProbeLandmark.");
+		m_Controls.checkBox_point19->setChecked(true);
+		ProbeLandmark->SetVisibility(false);
 
 	}
 
@@ -275,7 +291,7 @@ bool HTONDI::OnGenerateCutPlaneClicked()
 		// 计算旋转轴单位向量
 		if (judgModel_flag == 0) {
 			cout << "Left Limb" << endl;
-			// 计算左腿旋转分量 == 左上->左下 == 向外
+			// 对右腿进行旋转，应该是点0->点1
 			double vx_1 = mitkPointSet1->GetPoint(2)[0] - mitkPointSet1->GetPoint(1)[0];
 			double vy_1 = mitkPointSet1->GetPoint(2)[1] - mitkPointSet1->GetPoint(1)[1];
 			double vz_1 = mitkPointSet1->GetPoint(2)[2] - mitkPointSet1->GetPoint(1)[2];
@@ -465,7 +481,9 @@ bool HTONDI::CreateOneCutPlane()
 	// 设定可视化截骨平面的大小，70*70
 	cutPlaneSource->SetPoint1(0, 70, 0);
 	cutPlaneSource->SetPoint2(70, 0, 0);
-	cutPlaneSource->SetNormal(max);//设置法向量
+	//设置法向量
+	// cutPlaneSource->SetNormal(max);
+	cutPlaneSource->SetNormal(0, 0, 1);//设置法向量
 
 	// 定义截骨末端合页点的初始坐标
 	mitk::Point3D point0;//水平面左边中点
@@ -999,8 +1017,8 @@ bool HTONDI::OnShowSteelClick()
 
 
 	m_Controls.textBrowser_Action->append("Action: Show SteelPlate.");
-	auto steelPlate = GetDataStorage()->GetNamedNode("steelPlate");
-	auto steelPlatePoint = GetDataStorage()->GetNamedNode("steelPlatePointSet");
+	auto steelPlate = GetDataStorage()->GetNamedNode("SteelPlate");
+	auto steelPlatePoint = GetDataStorage()->GetNamedNode("SteelPlatePointSet");
 	if (steelPlate && steelPlatePoint)
 	{
 		// 获取状态
@@ -1011,7 +1029,7 @@ bool HTONDI::OnShowSteelClick()
 	}
 	else 
 	{
-		m_Controls.textBrowser_Action->append("steelPlate or steelPlatePoint Not Found!");
+		m_Controls.textBrowser_Action->append("SteelPlate or SteelPlatePoint Not Found!");
 	}
 	GetDataStorage()->Modified();
 	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
@@ -1024,18 +1042,18 @@ bool HTONDI::OnResetSteelClick()
 
 
 	m_Controls.textBrowser_Action->append("Action: Reset SteelPlate.");
-	auto steelPlate = GetDataStorage()->GetNamedNode("steelPlate");
+	auto steelPlate = GetDataStorage()->GetNamedNode("SteelPlate");
 	if (steelPlate)
 	{
 		steelPlate->SetVisibility(true);
 		steelPlate->GetData()->GetGeometry()->SetOrigin(m_steelPosition);
 		// 将其上的节点也一起迁移
-		auto steelPlatePoints = GetDataStorage()->GetNamedNode("steelPlatePointSet");
+		auto steelPlatePoints = GetDataStorage()->GetNamedNode("SteelPlatePointSet");
 		steelPlatePoints->GetData()->GetGeometry()->SetOrigin(m_steelPosition);
 	}
 	else
 	{
-		m_Controls.textBrowser_Action->append("steelPlate model Not Found!");
+		m_Controls.textBrowser_Action->append("SteelPlate model Not Found!");
 	}
 	GetDataStorage()->Modified();
 	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
@@ -1046,66 +1064,46 @@ bool HTONDI::OnSetFinalPosClick()
 {
 	/* 确定钢板的最后位置，并标记钢钉位置 */
 
-	m_Controls.textBrowser_Action->append("Action: Set Final steelPlate Pos.");
-	// 计算钢钉点
-	mitk::DataNode::Pointer steelPlatePoints = GetDataStorage()->GetNamedNode("steelPlatePointSet");
+	m_Controls.textBrowser_Action->append("Action: Set Final SteelPlate Pos.");
+	
+	// 标记钢钉规划点
+	// 已知三个目标点的顺序为 中 -> 左 -> 右
+	mitk::DataNode::Pointer steelPlatePoints = GetDataStorage()->GetNamedNode("SteelPlatePointSet");
 	if (steelPlatePoints)
 	{
 		// 创建一个点集，用于记录所有计算出的钻孔中心位置
 		mitk::PointSet::Pointer holeCenters = mitk::PointSet::New();
-		// 开始计算当前情况下的所有钻孔点
-		for (int i = 0; i <= 3; i++) {
-			auto point1 = dynamic_cast<mitk::PointSet*>(steelPlatePoints->GetData())->GetPoint(3*i);
-			auto point2 = dynamic_cast<mitk::PointSet*>(steelPlatePoints->GetData())->GetPoint(3*i+1);
-			auto point3 = dynamic_cast<mitk::PointSet*>(steelPlatePoints->GetData())->GetPoint(3*i+2);
+		// 中 -> 左 -> 右
+		auto point1 = dynamic_cast<mitk::PointSet*>(steelPlatePoints->GetData())->GetPoint(0);
+		auto point2 = dynamic_cast<mitk::PointSet*>(steelPlatePoints->GetData())->GetPoint(1);
+		auto point3 = dynamic_cast<mitk::PointSet*>(steelPlatePoints->GetData())->GetPoint(2);
+		holeCenters->InsertPoint(0, point1);
+		holeCenters->InsertPoint(1, point2);
+		holeCenters->InsertPoint(2, point3);
 
-			//// 方法 1 计算这三个点形成的空间圆的圆心(几何中心)
-			//mitk::Point3D centerPoint;
-			//centerPoint[0] = (point1[0] + point1[0] + point2[0]) / 3;
-			//centerPoint[1] = (point1[1] + point1[1] + point2[1]) / 3;
-			//centerPoint[2] = (point1[2] + point1[2] + point2[2]) / 3;
-			//
-			//// 添加钻孔中心到点集
-			//holeCenters->InsertPoint(i, centerPoint);
-
-			// 方法 2 计算空间圆的圆心
-			Eigen::Vector3d fitPoint1(point1[0], point1[1], point1[2]);
-			Eigen::Vector3d fitPoint2(point2[0], point2[1], point2[2]);
-			Eigen::Vector3d fitPoint3(point3[0], point3[1], point3[2]);
-
-			auto [centerPoint, _] = FitCircle3D(fitPoint1, fitPoint2, fitPoint3);
-			//auto centerPoint = CalculateCircumcenter(fitPoint1, fitPoint2, fitPoint3);
-			mitk::Point3D center;
-			center[0] = centerPoint[0];
-			center[1] = centerPoint[1];
-			center[2] = centerPoint[2];
-
-			//// 添加钻孔中心到点集
-			holeCenters->InsertPoint(i, center);
-		}
-
-		auto holeCentersNode = GetDataStorage()->GetNamedNode("steelPlateHolePointSet");
+		// 进行可视化
+		auto holeCentersNode = GetDataStorage()->GetNamedNode("SteelPlateHolePointSet");
 		if (holeCentersNode != nullptr)
 		{	
 			// 有数据则直接更新
-			m_Controls.textBrowser_Action->append("Change steelPlateHole Pos");
+			m_Controls.textBrowser_Action->append("Change SteelPlateHole Pos");
 			holeCentersNode->SetData(holeCenters);
 		}
 		else
 		{
 			// 没有点则创建点
-			m_Controls.textBrowser_Action->append("Init steelPlateHole Pos");
+			m_Controls.textBrowser_Action->append("Init SteelPlateHole Pos");
 			mitk::DataNode::Pointer holeCentersNode = mitk::DataNode::New();
 			holeCentersNode->SetData(holeCenters);
-			holeCentersNode->SetName("steelPlateHolePointSet");
-			holeCentersNode->SetColor(0.0, 0.0, 1.0);                                  // Set color to red
-			holeCentersNode->SetProperty("pointsize", mitk::FloatProperty::New(5.0)); // Change the point size
+			holeCentersNode->SetName("SteelPlateHolePointSet");
+			holeCentersNode->SetColor(0.0, 0.0, 1.0);
+			holeCentersNode->SetProperty("pointsize", mitk::FloatProperty::New(5.0));
 			GetDataStorage()->Add(holeCentersNode);
 		}
 	}
 	else
 	{
-		m_Controls.textBrowser_Action->append("steelPlatePointSet Not Found!");
+		m_Controls.textBrowser_Action->append("SteelPlatePointSet Not Found!");
 	}
 	// 将标记点进行不可见化
 	if (steelPlatePoints)
@@ -1114,7 +1112,7 @@ bool HTONDI::OnSetFinalPosClick()
 	}
 	else
 	{
-		m_Controls.textBrowser_Action->append("steelPlatePointSet model Not Found!");
+		m_Controls.textBrowser_Action->append("SteelPlatePointSet model Not Found!");
 	}
 	GetDataStorage()->Modified();
 	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
@@ -1178,7 +1176,8 @@ bool HTONDI::OnCaculateStrechAngleClicked()
 	std::cout << "目标延长线上的点C坐标为: (" << transPos[0] << ", " << transPos[1] << ", " << transPos[2] << ")" << endl;
 
 	// 0:右腿. 1：左腿
-	if (judgModel_flag == 0) {
+	if (judgModel_flag == 1) {
+		// 左腿
 		cout << "left Limb" << endl;
 		std::cout << "合页点为: (" << mitkPointSet1->GetPoint(3)[0] << ", " << mitkPointSet1->GetPoint(3)[1] << ", " << mitkPointSet1->GetPoint(3)[2] << ")" << endl;
 		auto tmp = GetDataStorage()->GetNamedNode("legForceLine");
@@ -1209,7 +1208,7 @@ bool HTONDI::OnCaculateStrechAngleClicked()
 		// 计算两个方向向量之间的夹角
 		double dotProduct = direction1[0] * direction2[0] + direction1[1] * direction2[1] + direction1[2] * direction2[2]; // 点积
 		double angleInRadians = acos(dotProduct); // 使用反余弦函数得到角度的弧度值
-		double angleInDegrees = round(angleInRadians * (180.0 / M_PI)); // 将弧度转换为度数
+		double angleInDegrees = round(angleInRadians * (180.0 / M_PI) * 10) / 10; // 保留一位小数
 
 		m_Controls.LineEdit_angle->setText(QString::number(angleInDegrees));
 		std::cout << "The angle between the two directions is: " << angleInDegrees << " degrees." << std::endl;
@@ -1217,10 +1216,12 @@ bool HTONDI::OnCaculateStrechAngleClicked()
 
 		CaculateStrechHeigh();
 		// 这里的旋转会按照LinEdit中的数值来进行，数值在前面计算夹角的时候就被更新了
-		RotateMinus();
+		RotatePlus();
+		
 	}
-	else if (judgModel_flag == 1)
+	else if (judgModel_flag == 0)
 	{
+		// 当前模型为右腿
 		cout << "Right Limb" << endl;
 		std::cout << "合页点为: (" << mitkPointSet1->GetPoint(0)[0] << ", " << mitkPointSet1->GetPoint(0)[1] << ", " << mitkPointSet1->GetPoint(0)[2] << ")" << endl;
 		auto tmp = GetDataStorage()->GetNamedNode("legForceLine");
@@ -1251,14 +1252,14 @@ bool HTONDI::OnCaculateStrechAngleClicked()
 		// 计算两个方向向量之间的夹角
 		double dotProduct = direction1[0] * direction2[0] + direction1[1] * direction2[1] + direction1[2] * direction2[2]; // 点积
 		double angleInRadians = acos(dotProduct); // 使用反余弦函数得到角度的弧度值
-		double angleInDegrees = round(angleInRadians * (180.0 / M_PI)); // 将弧度转换为度数
+		double angleInDegrees = round(angleInRadians * (180.0 / M_PI) * 10) / 10; // 保留一位小数
 		m_Controls.LineEdit_angle->setText(QString::number(angleInDegrees));
 		std::cout << "The angle between the two directions is: " << angleInDegrees << " degrees." << std::endl;
 		m_Controls.LineEdit_transAngle->setText(QString::number(angleInDegrees));
 
 		CaculateStrechHeigh();
 		// 这里的旋转会按照LinEdit中的数值来进行，数值在前面计算夹角的时候就被更新了
-		RotatePlus();
+		RotateMinus();
 	}
 	return true;
 }

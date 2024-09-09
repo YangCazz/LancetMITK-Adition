@@ -50,10 +50,13 @@ bool HTONDI::OnSelectPointerClicked()
 {
 	/* 选中探针工具 
 	   探针工具名必须为:ProbeRF
+
+	   2. 注册探针表面图像的landmark点
 	*/
 	m_Controls.textBrowser_Action->append("Action: Select Pointer.");
 	// 获取工具存储中的探针工具
 	auto toolProbe = m_VegaToolStorage->GetToolByName("ProbeRF");
+	
 	if (toolProbe.IsNull())
 	{
 		MITK_ERROR << "ProbeRF tool not found.";
@@ -62,6 +65,13 @@ bool HTONDI::OnSelectPointerClicked()
 
 	// 赋值 m_ToolToCalibrate
 	m_ToolToCalibrate = toolProbe;
+
+
+	// 注册点
+	probe_image = lancet::NavigationObject::New();
+	auto ProbePoints = GetDataStorage()->GetNamedNode("ProbeLandMarkPointSet");
+	probe_image->SetLandmarks(dynamic_cast<mitk::PointSet*>(ProbePoints->GetData()));
+
 	MITK_INFO << "Tool selected: " << m_ToolToCalibrate->GetToolName();
 	return true;
 }
@@ -761,7 +771,14 @@ bool HTONDI::OnCalibrateSawClicked()
 		combinedRegistrator->SetLandmarksTarget(saw_image->GetLandmarks_probe());
 		combinedRegistrator->SetSurfaceSrc(GetDataStorage()->GetNamedObject<mitk::Surface>("Saw"));
 		combinedRegistrator->ComputeLandMarkResult();
+		
+		// 
+		// 保存数据
+		auto T_SawRFtoSaw = combinedRegistrator->GetMatrixLandMark();
+		memcpy_s(m_T_SawRFtoImage_saw, sizeof(double) * 16, T_SawRFtoSaw->GetData(), sizeof(double) * 16);
 
+		m_Controls.textBrowser_Action->append("Saw Calibrated done.");
+		
 		//m_ObjectRfToImageMatrix_hto->DeepCopy(combinedRegistrator->GetResult());
 		double SawError02 = combinedRegistrator->GetavgLandmarkError();
 
@@ -958,6 +975,11 @@ bool HTONDI::OnCalibrateDrillClicked()
 
 	====== 修改0902 ======
 	修改标定方法
+
+	====== 修改0906 ======
+	修改标定方法: 计算 m_T_DrillRFToDrill
+		1.首先计算 T_CalibratorRFtoDrill
+		2.然后计算 T_DrillRFToDrill = (T_CameraToDrillRF)^-1 * T_CameraToCalibratorRF * T_CalibratorRFtoDrill
 	*/
 
 	m_Controls.textBrowser_Action->append("Action: Calibrate Drill Node and Axis.");
@@ -974,7 +996,124 @@ bool HTONDI::OnCalibrateDrillClicked()
 		return false;
 	}
 
+	// 取出当前摆锯数据点
+	auto drill_head_tail = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData());
 
+	if (drill_head_tail)
+	{
+		// 首先计算 T_CalibratorRFtoDrill
+		// 修改 0908 - 向量修改
+		// 点 0 是 tail 点 1 是 head
+		auto drill_head = drill_head_tail->GetPoint(1);
+		auto drill_tail = drill_head_tail->GetPoint(0);
+
+		// 输出测试01
+		m_Controls.textBrowser_DrillGuide->append("Image: drill_head:"
+			+ QString::number(drill_head[0]) + " / "
+			+ QString::number(drill_head[1]) + " / "
+			+ QString::number(drill_head[2]) );
+
+		m_Controls.textBrowser_DrillGuide->append("Image: drill_tail:"
+			+ QString::number(drill_tail[0]) + " / "
+			+ QString::number(drill_tail[1]) + " / "
+			+ QString::number(drill_tail[2]));
+
+		Eigen::Vector3d z_drill_Under_Image;
+		z_drill_Under_Image[0] = drill_tail[0] - drill_head[0];
+		z_drill_Under_Image[1] = drill_tail[1] - drill_head[1];
+		z_drill_Under_Image[2] = drill_tail[2] - drill_head[2];
+
+		// 输出测试01
+		m_Controls.textBrowser_DrillGuide->append("z_drill_Under_Image:"
+			+ QString::number(z_drill_Under_Image[0]) + " / "
+			+ QString::number(z_drill_Under_Image[1]) + " / "
+			+ QString::number(z_drill_Under_Image[2]));
+		z_drill_Under_Image.normalize();
+		m_Controls.textBrowser_DrillGuide->append("z_drill_Under_Image_norm:"
+			+ QString::number(z_drill_Under_Image[0]) + " / "
+			+ QString::number(z_drill_Under_Image[1]) + " / "
+			+ QString::number(z_drill_Under_Image[2]));
+
+		// 修改了 tail 和 head 的位置
+		Eigen::Vector3d z_drill_Under_CalibratorRF;
+		z_drill_Under_CalibratorRF[0] = m_DrillPointOnCalibratorRF_tail[0] - m_DrillPointOnCalibratorRF_head[0];
+		z_drill_Under_CalibratorRF[1] = m_DrillPointOnCalibratorRF_tail[1] - m_DrillPointOnCalibratorRF_head[1];
+		z_drill_Under_CalibratorRF[2] = m_DrillPointOnCalibratorRF_tail[2] - m_DrillPointOnCalibratorRF_head[2];
+
+		m_Controls.textBrowser_DrillGuide->append("z_drill_Under_CalibratorRF:"
+			+ QString::number(z_drill_Under_CalibratorRF[0]) + " / "
+			+ QString::number(z_drill_Under_CalibratorRF[1]) + " / "
+			+ QString::number(z_drill_Under_CalibratorRF[2]));
+		z_drill_Under_CalibratorRF.normalize();
+		m_Controls.textBrowser_DrillGuide->append("z_drill_Under_CalibratorRF_norm:"
+			+ QString::number(z_drill_Under_CalibratorRF[0]) + " / "
+			+ QString::number(z_drill_Under_CalibratorRF[1]) + " / "
+			+ QString::number(z_drill_Under_CalibratorRF[2]));
+
+
+		Eigen::Vector3d rotAxis = z_drill_Under_CalibratorRF.cross(z_drill_Under_Image);
+		m_Controls.textBrowser_DrillGuide->append("rotAxis:"
+			+ QString::number(rotAxis[0]) + " / "
+			+ QString::number(rotAxis[1]) + " / "
+			+ QString::number(rotAxis[2]));
+		rotAxis.normalize();
+		m_Controls.textBrowser_DrillGuide->append("rotAxis:"
+			+ QString::number(rotAxis[0]) + " / "
+			+ QString::number(rotAxis[1]) + " / "
+			+ QString::number(rotAxis[2]));
+
+		double rotAngle = 180 * acos(z_drill_Under_CalibratorRF.dot(z_drill_Under_Image)) / 3.141592654;
+		m_Controls.textBrowser_DrillGuide->append("rotAngle:" + QString::number(rotAngle));
+		cout << "rotAngle: " << rotAngle << endl;
+
+
+		auto trans_calibratorRFtoDrill = vtkTransform::New();
+		trans_calibratorRFtoDrill->Identity();
+		trans_calibratorRFtoDrill->PostMultiply();
+		trans_calibratorRFtoDrill->RotateWXYZ(rotAngle, rotAxis[0], rotAxis[1], rotAxis[2]);
+		trans_calibratorRFtoDrill->Update();
+
+		auto T_calibratorRFtoDrill = trans_calibratorRFtoDrill->GetMatrix();
+		T_calibratorRFtoDrill->SetElement(0, 3, drill_head[0] - m_DrillPointOnCalibratorRF_head[0]);
+		T_calibratorRFtoDrill->SetElement(1, 3, drill_head[1] - m_DrillPointOnCalibratorRF_head[1]);
+		T_calibratorRFtoDrill->SetElement(2, 3, drill_head[2] - m_DrillPointOnCalibratorRF_head[2]);
+
+		memcpy_s(m_T_calibratorRFtoDrill, sizeof(double) * 16, T_calibratorRFtoDrill->GetData(), sizeof(double) * 16);
+
+		// 然后计算 T_DrillRFToDrill = (T_CameraToDrillRF)^-1 * T_CameraToCalibratorRF * T_CalibratorRFtoDrill
+		auto T_DrillRFtoCamera = vtkMatrix4x4::New();
+		auto T_CameraToCalibratorRF = vtkMatrix4x4::New();
+
+
+		T_DrillRFtoCamera->DeepCopy(m_T_cameraToDrillRF);
+		T_DrillRFtoCamera->Invert();
+
+		T_CameraToCalibratorRF->DeepCopy(m_T_cameraToCalibratorRF);
+
+		auto trans_DrillRFtoDrill = vtkTransform::New();
+		trans_DrillRFtoDrill->Identity();
+		trans_DrillRFtoDrill->PostMultiply();
+		trans_DrillRFtoDrill->SetMatrix(T_calibratorRFtoDrill);
+		trans_DrillRFtoDrill->Concatenate(T_CameraToCalibratorRF);
+		trans_DrillRFtoDrill->Concatenate(T_DrillRFtoCamera);
+		trans_DrillRFtoDrill->Update();
+
+		// 保存数据
+		auto T_DrillRFtoDrill = trans_DrillRFtoDrill->GetMatrix();
+		memcpy_s(m_T_DrillRFtoImage_drill, sizeof(double) * 16, T_DrillRFtoDrill->GetData(), sizeof(double) * 16);
+
+		m_Controls.textBrowser_Action->append("Drill Calibrated done.");
+
+		m_Controls.textBrowser_CalibrateRes->append("Drill tip in handpieceRF:"
+			+ QString::number(m_T_DrillRFtoImage_drill[3]) + " / "
+			+ QString::number(m_T_DrillRFtoImage_drill[7]) + " / "
+			+ QString::number(m_T_DrillRFtoImage_drill[11]) + " / "
+			+ QString::number(m_T_DrillRFtoImage_drill[15]));
+	}
+
+
+
+/*
 	cout << "test 02" << endl;
 	// 判断是否已经完成标定
 	// m_DrillPointsOnDrillRF 记录AB点坐标
@@ -1058,8 +1197,7 @@ bool HTONDI::OnCalibrateDrillClicked()
 	{
 		m_Controls.textBrowser_Action->append("Drill Calibrated ERROR.");
 	}
-
-	// 其它情况
+*/
 	return false;
 }
 
@@ -1644,9 +1782,9 @@ bool HTONDI::OnCaculateTibiaLandmarlClicked()
 		m_HTOPrboeUpdateTimer = new QTimer(this); //create a new timer
 	}
 	//cout << "test disconnect" << endl;
-	disconnect(m_HTOPrboeUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOProbe()));
+	disconnect(m_HTOPrboeUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOProbe02()));
 	//cout << "test connect" << endl;
-	connect(m_HTOPrboeUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOProbe()));
+	connect(m_HTOPrboeUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOProbe02()));
 
 	m_HTOPrboeUpdateTimer->start(100);
 
@@ -1858,10 +1996,11 @@ bool HTONDI::OnCaculateTibiaICPClicked()
 
 void HTONDI::UpdateHTOProbe()
 {
+	/* 更新探针位置 */
 	cout << "test probe 01" << endl;
-	if (GetDataStorage()->GetNamedNode("Probe_forVisual") == nullptr)
+	if (GetDataStorage()->GetNamedNode("Probe") == nullptr)
 	{
-		cout << "test 02-No Probe_forVisual" << endl;
+		cout << "test 02-No Probe" << endl;
 		return;
 	}
 	auto probeIndex = m_VegaToolStorage->GetToolIndexByName("ProbeRF");
@@ -1897,19 +2036,196 @@ void HTONDI::UpdateHTOProbe()
 	imageToRfMatrix->Invert();
 
 	cout << "test probe 07" << endl;
+	// 得到 T_Image2ProbeRF = T_TibiaRF2Imgae.inverse() * T_TibiaRF2ProbeRF
 	vtkNew<vtkTransform> tmpTrans;
 	tmpTrans->PostMultiply();
 	tmpTrans->SetMatrix(vtkMatrix_rfToProbe);
 	tmpTrans->Concatenate(imageToRfMatrix);
 	tmpTrans->Update();
 
+	// 格式转化
+	Eigen::Matrix4d T_Image_To_ProbeRF;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			T_Image_To_ProbeRF(i, j) = tmpTrans->GetMatrix()->GetElement(i, j);
+		}
+	}
+
+	// 可以计算得到 current
+	// N_ProbeRF_Probe = T_Image2ProbeRF * N_ProbeRF_Probe
+
+	// 将m_DrillPointsOnDrillRF转化为矩阵[4, n]
+	Eigen::Matrix4Xd m_ProbePointOnProbeRF4d(4, 2);
+	m_ProbePointOnProbeRF4d(0, 0) = m_ProbePointOnProbeRF_A(0);
+	m_ProbePointOnProbeRF4d(1, 0) = m_ProbePointOnProbeRF_A(1);
+	m_ProbePointOnProbeRF4d(2, 0) = m_ProbePointOnProbeRF_A(2);
+	m_ProbePointOnProbeRF4d(3, 0) = 1.0;
+	m_ProbePointOnProbeRF4d(0, 1) = m_ProbePointOnProbeRF_B(0);
+	m_ProbePointOnProbeRF4d(1, 1) = m_ProbePointOnProbeRF_B(1);
+	m_ProbePointOnProbeRF4d(2, 1) = m_ProbePointOnProbeRF_B(2);
+	m_ProbePointOnProbeRF4d(3, 1) = 1.0;
+
+	// 首先取得探针的两个点位置
+	auto pointSet_landmark = probe_image->GetLandmarks();
+	Eigen::Matrix4Xd N_TP_Under_Image_Init(4, pointSet_landmark->GetSize());
+	for (int i = 0; i < pointSet_landmark->GetSize(); i++)
+	{
+		N_TP_Under_Image_Init(0, i) = pointSet_landmark->GetPoint(i)[0];
+		N_TP_Under_Image_Init(1, i) = pointSet_landmark->GetPoint(i)[1];
+		N_TP_Under_Image_Init(2, i) = pointSet_landmark->GetPoint(i)[2];
+		N_TP_Under_Image_Init(3, i) = 1.0;
+	}
+
+
+	// 计算 current 位置的 A_current 和 B_current
+	Eigen::Matrix4Xd N_TP_Under_Image_Current = T_Image_To_ProbeRF * m_ProbePointOnProbeRF4d;
+	// 计算方向向量 n_current = B_current->A_current
+	Eigen::Vector4d tmp_current = N_TP_Under_Image_Current.col(0) - N_TP_Under_Image_Current.col(1);
+	Eigen::Vector3d n_current = { tmp_current[0], tmp_current[1], tmp_current[2] };
+	n_current.normalize();
+
+	cout << "Probe_A_init" << "( " << N_TP_Under_Image_Init.col(0)[0] << " , " << N_TP_Under_Image_Init.col(0)[1] << " , " << N_TP_Under_Image_Init.col(0)[2] << ")." << endl;
+	cout << "Probe_B_init" << "( " << N_TP_Under_Image_Init.col(1)[0] << " , " << N_TP_Under_Image_Init.col(1)[1] << " , " << N_TP_Under_Image_Init.col(1)[2] << ")." << endl;
+	cout << "Probe_A_current" << "( " << N_TP_Under_Image_Current.col(0)[0] << " , " << N_TP_Under_Image_Current.col(0)[1] << " , " << N_TP_Under_Image_Current.col(0)[2] << ")." << endl;
+	cout << "Probe_B_current" << "( " << N_TP_Under_Image_Current.col(1)[0] << " , " << N_TP_Under_Image_Current.col(1)[1] << " , " << N_TP_Under_Image_Current.col(1)[2] << ")." << endl;
+
+	// 计算 初始位置 的方向向量
+	// 计算方向向量 n_init = B_init->A_init
+	Eigen::Vector4d tmp_init = N_TP_Under_Image_Init.col(0) - N_TP_Under_Image_Init.col(1);
+	Eigen::Vector3d n_init = { tmp_init[0], tmp_init[1], tmp_init[2] };
+	n_init.normalize();
+
+	// 构建转化矩阵 T_current
+	// 首先，创建平移矩阵
+	Eigen::Vector4d T_Current_Translate = N_TP_Under_Image_Current.col(1) - N_TP_Under_Image_Init.col(1);
+	cout << "T_Current_Translate: (" << T_Current_Translate[0] << "," << T_Current_Translate[1] << "," << T_Current_Translate[2] << ")" << endl;
+	
+	// 然后，创建旋转矩阵
+	// 计算旋转矩阵 n_init -> n_current ，无法直接使用矩阵计算，这里使用角度计算方法
+	Eigen::Vector3d axis = n_init.cross(n_current);
+	double angle = std::acos(n_init.dot(n_current));
+	// 取出旋转矩阵
+	Eigen::AngleAxisd rotation(angle, axis);
+	Eigen::Matrix3d T_Current_Rotation = rotation.toRotationMatrix();
+
+	// 最后，拼接变化矩阵
+	Eigen::Matrix4Xd T_Current = Eigen::Matrix4d::Identity();
+	// 复制旋转矩阵到左上角
+	T_Current.block<3, 3>(0, 0) = T_Current_Rotation;
+	// 复制平移向量到第四列
+	T_Current.col(3).head(3) = T_Current_Translate.head(3);
+	// 设置最后一行
+	T_Current.row(3) << 0, 0, 0, 1;
+
+	// T_Current转化回 vtkMatrix4x4
+	vtkNew<vtkMatrix4x4> T_Current_vtk;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < T_Current.cols(); j++) {
+			T_Current_vtk->SetElement(i, j, T_Current(i, j));
+		}
+	}
+
 	cout << "test probe 08" << endl;
-	GetDataStorage()->GetNamedNode("Probe_forVisual")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
-	GetDataStorage()->GetNamedNode("Probe_forVisual")->GetData()->GetGeometry()->Modified();
+	GetDataStorage()->GetNamedNode("Probe")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
+	// GetDataStorage()->GetNamedNode("Probe")->GetData()->GetGeometry()->Modified();
 
 	cout << "Current probe visulizetion done" << endl;
 }
 
+void HTONDI::UpdateHTOProbe02()
+{
+	/* 更新探针位置02
+		采用直接的矩阵计算方法来进行计算
+		计算探针末端两点(AB)到当前两点的位置
+	*/
+	cout << "test probe 01" << endl;
+	if (GetDataStorage()->GetNamedNode("Probe") == nullptr)
+	{
+		cout << "test 02-No Probe" << endl;
+		return;
+	}
+	auto probeIndex = m_VegaToolStorage->GetToolIndexByName("ProbeRF");
+	auto objectRfIndex = m_VegaToolStorage->GetToolIndexByName("TibiaRF");
+
+	if (probeIndex == -1 || objectRfIndex == -1)
+	{
+		m_Controls.textBrowser_Action->append("There is no 'ProbeRF' or 'TibiaRF' in the toolStorage!");
+		return;
+	}
+
+	auto T_cameraToTibiaRF = vtkMatrix4x4::New();
+	T_cameraToTibiaRF->DeepCopy(m_T_cameraToTibiaRF);
+	T_cameraToTibiaRF->Invert();
+
+	auto T_cameraToProbeRF = vtkMatrix4x4::New();
+	T_cameraToProbeRF->DeepCopy(m_T_cameraToProbeRF);
+
+	auto T_imageToTibiaRF = vtkMatrix4x4::New();
+	T_imageToTibiaRF->DeepCopy(m_ObjectRfToImageMatrix_hto);
+	T_imageToTibiaRF->Invert();
+
+	if (start_probe == false)
+	{
+		auto probe_head_tail = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("ProbeLandMarkPointSet")->GetData());
+
+		if (probe_head_tail)
+		{
+			auto probe_head = probe_head_tail->GetPoint(0); // 点 A
+			auto probe_tail = probe_head_tail->GetPoint(1); // 点 B
+
+			Eigen::Vector3d z_probe_Under_Image;
+			z_probe_Under_Image[0] = probe_tail[0] - probe_head[0];
+			z_probe_Under_Image[1] = probe_tail[1] - probe_head[1];
+			z_probe_Under_Image[2] = probe_tail[2] - probe_head[2];
+			z_probe_Under_Image.normalize();
+
+			Eigen::Vector3d z_probe_Under_probeRF;
+			z_probe_Under_probeRF[0] = m_ProbePointOnProbeRF_B[0] - m_ProbePointOnProbeRF_A[0];
+			z_probe_Under_probeRF[1] = m_ProbePointOnProbeRF_B[1] - m_ProbePointOnProbeRF_A[1];
+			z_probe_Under_probeRF[2] = m_ProbePointOnProbeRF_B[2] - m_ProbePointOnProbeRF_A[2];
+			z_probe_Under_probeRF.normalize();
+
+			Eigen::Vector3d rotAxis = z_probe_Under_probeRF.cross(z_probe_Under_Image);
+			rotAxis.normalize();
+
+			double rotAngle = 180 * acos(z_probe_Under_probeRF.dot(z_probe_Under_Image)) / 3.141592654;
+
+			auto trans_ProbeRFtoImage_probe = vtkTransform::New();
+			trans_ProbeRFtoImage_probe->Identity();
+			trans_ProbeRFtoImage_probe->PostMultiply();
+			trans_ProbeRFtoImage_probe->RotateWXYZ(rotAngle, rotAxis[0], rotAxis[1], rotAxis[2]);
+			trans_ProbeRFtoImage_probe->Update();
+
+			auto T_ProbeRFtoImage_probe = trans_ProbeRFtoImage_probe->GetMatrix();
+			T_ProbeRFtoImage_probe->SetElement(0, 3, probe_head[0] - m_ProbePointOnProbeRF_A[0]);
+			T_ProbeRFtoImage_probe->SetElement(1, 3, probe_head[1] - m_ProbePointOnProbeRF_A[1]);
+			T_ProbeRFtoImage_probe->SetElement(2, 3, probe_head[2] - m_ProbePointOnProbeRF_A[2]);
+
+			memcpy_s(m_T_ProbeRFtoImage_probe, sizeof(double) * 16, T_ProbeRFtoImage_probe->GetData(), sizeof(double) * 16);
+			//m_Stat_calibratorRFtoDrill = true;
+			start_probe = true;
+		}
+	}
+	auto T_ProbeRFtoImage_probe = vtkMatrix4x4::New();
+	T_ProbeRFtoImage_probe->DeepCopy(m_T_ProbeRFtoImage_probe);
+
+	auto tmpTrans = vtkTransform::New();
+	tmpTrans->Identity();
+	tmpTrans->PostMultiply();
+	tmpTrans->SetMatrix(T_ProbeRFtoImage_probe);
+	tmpTrans->Concatenate(T_cameraToProbeRF);
+	tmpTrans->Concatenate(T_cameraToProbeRF);
+	tmpTrans->Concatenate(T_imageToTibiaRF);
+	tmpTrans->Update();
+
+	auto T_imageToProbe = tmpTrans->GetMatrix();
+
+	memcpy_s(m_T_imageToProbe, sizeof(double) * 16, T_imageToProbe->GetData(), sizeof(double) * 16);
+	GetDataStorage()->GetNamedNode("Probe")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_imageToProbe);
+	GetDataStorage()->GetNamedNode("Probe")->GetData()->GetGeometry()->Modified();
+	GetDataStorage()->GetNamedNode("ProbeLandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_imageToProbe);
+	GetDataStorage()->GetNamedNode("ProbeLandMarkPointSet")->GetData()->GetGeometry()->Modified();
+}
 
 void HTONDI::OnInitHTOTibiaRegisClicked()
 {
@@ -2352,7 +2668,7 @@ bool HTONDI::OnCollectHTOTibiaRegisClicked()
 	}
 
 	// 显示探针
-	GetDataStorage()->GetNamedNode("Probe_forVisual")->SetVisibility(true);
+	GetDataStorage()->GetNamedNode("Probe")->SetVisibility(true);
 
 	// 开始更新探针位置
 	disconnect(m_HTOPrboeUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOProbe()));

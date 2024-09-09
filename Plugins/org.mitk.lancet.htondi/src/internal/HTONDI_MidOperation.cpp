@@ -107,101 +107,142 @@ void HTONDI::UpdateHTODrill()
 	tmpTrans->Concatenate(imageToRfMatrix);
 	tmpTrans->Update();
 
-	// 以上计算出了磨钻表面的投影关系，但是初始加载的磨钻表面位置却不一定正确，需要修正
-	if (start_drill == false)
-	{	
-		/* 在初始情况下，landmark点的位置是last位置，这个时候可以借助这个点集来计算 */
-		// 将T_Image_To_DrillRF转化为Eigen::Matrix4d格式
-		cout << "test drill 08-01" << endl;
-		Eigen::Matrix4d T_Image_To_DrillRF;
-		for (int i = 0; i < 4; i++) {
-			for (int j = 0; j < 4; j++) {
-				T_Image_To_DrillRF(i, j) = tmpTrans->GetMatrix()->GetElement(i, j);
-			}
+	// 格式转化
+	Eigen::Matrix4d T_Image_To_DrillRF;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			T_Image_To_DrillRF(i, j) = tmpTrans->GetMatrix()->GetElement(i, j);
 		}
-
-		// 将m_DrillPointsOnDrillRF转化为矩阵 [4,n]
-		Eigen::Matrix4Xd m_DrillPointsOnDrillRF4d(4, m_DrillPointsOnDrillRF.size());
-		for (int i = 0; i < m_DrillPointsOnDrillRF.size(); i++) {
-			m_DrillPointsOnDrillRF4d.col(i) = m_DrillPointsOnDrillRF[i];
-		}
-
-		// 计算current位置的 A2 和 B2
-		Eigen::Matrix4Xd N_TP_Under_Image_Recent = T_Image_To_DrillRF * m_DrillPointsOnDrillRF4d;
-
-		// recent
-		// 计算方向向量 n2 = B2_A2
-		Eigen::Vector4d tmp1 = N_TP_Under_Image_Recent.col(0) - N_TP_Under_Image_Recent.col(1);
-		Eigen::Vector3d n2 = { tmp1[0], tmp1[1], tmp1[2] };
-		n2.normalize();
-
-		// last
-		// 取出last位置: 钉子模型的 前端点 A 和 末端点 B
-		// 取出landmark点同样转化为矩阵 [4,n]
-		auto pointSet_landmark = drill_image->GetLandmarks();
-		Eigen::Matrix4Xd N_TP_Under_Image_Last(4, pointSet_landmark->GetSize());
-		for (int i = 0; i < pointSet_landmark->GetSize(); i++) {
-			N_TP_Under_Image_Last(0, i) = pointSet_landmark->GetPoint(i)[0];
-			N_TP_Under_Image_Last(1, i) = pointSet_landmark->GetPoint(i)[1];
-			N_TP_Under_Image_Last(2, i) = pointSet_landmark->GetPoint(i)[2];
-			N_TP_Under_Image_Last(3, i) = 1;
-		}
-
-		// 计算方向向量 n1 = B1_A1
-		Eigen::Vector4d tmp2 = N_TP_Under_Image_Last.col(0) - N_TP_Under_Image_Last.col(1);
-		Eigen::Vector3d n1 = { tmp2[0], tmp2[1], tmp2[2] };
-		n1.normalize();
-
-		// 计算旋转矩阵 n1->n2
-		// 无法直接使用矩阵计算，这里使用角度计算方法
-		Eigen::Vector3d axis = n1.cross(n2);
-		double angle = std::acos(n1.dot(n2));
-		// 取出旋转矩阵
-		Eigen::AngleAxisd rotation(angle, axis);
-		Eigen::Matrix3d T_Current_Rotation = rotation.toRotationMatrix();
-
-		// 平移变化 B1 -> B2
-		// T_current_Trans =  B2 - B1
-		// 注意存储的点下标
-		Eigen::Vector4d T_Current_Translate = N_TP_Under_Image_Recent.col(1) - N_TP_Under_Image_Last.col(1);
-
-		// 拼接变化矩阵
-		Eigen::Matrix4Xd T_Current = Eigen::Matrix4d::Identity();
-		// 复制旋转矩阵到左上角
-		T_Current.block<3, 3>(0, 0) = T_Current_Rotation;
-		// 复制平移向量到第四列
-		T_Current.col(3).head(3) = T_Current_Translate.head(3);
-		// 设置最后一行
-		T_Current.row(3) << 0, 0, 0, 1;
-
-		
-		// T_Current转化回 vtkMatrix4x4
-		vtkNew<vtkMatrix4x4> T_Current_vtk;
-		for (int i = 0; i < 4; i++) {
-			for (int j = 0; j < T_Current.cols(); j++) {
-				T_Current_vtk->SetElement(i, j, T_Current(i, j));
-			}
-		}
-
-		// 将其应用到初始位置上
-		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
-		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->Modified();
-
-		GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
-		GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->Modified();
-
-		// 更新标准位
-		start_drill = true;
 	}
-	else if (start_drill == true)
+
+	// 将m_DrillPointsOnDrillRF转化为矩阵 [4,n]
+	Eigen::Matrix4Xd m_DrillPointsOnDrillRF4d(4, m_DrillPointsOnDrillRF.size());
+	for (int i = 0; i < m_DrillPointsOnDrillRF.size(); i++) {
+		m_DrillPointsOnDrillRF4d.col(i) = m_DrillPointsOnDrillRF[i];
+	}
+
+	auto pointSet_landmark = drill_image->GetLandmarks();
+	Eigen::Matrix4Xd N_TP_Under_Image_Init(4, pointSet_landmark->GetSize());
+	for (int i = 0; i < pointSet_landmark->GetSize(); i++)
 	{
-		cout << "test drill 08-02" << endl;
-		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
-		GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->Modified();
-
-		GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
-		GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->Modified();
+		N_TP_Under_Image_Init(0, i) = pointSet_landmark->GetPoint(i)[0];
+		N_TP_Under_Image_Init(1, i) = pointSet_landmark->GetPoint(i)[1];
+		N_TP_Under_Image_Init(2, i) = pointSet_landmark->GetPoint(i)[2];
+		N_TP_Under_Image_Init(3, i) = 1.0;
 	}
+
+
+	// 计算 current 位置的 A_current 和 B_current
+	Eigen::Matrix4Xd N_TP_Under_Image_Current = T_Image_To_DrillRF * m_DrillPointsOnDrillRF4d;
+	// 计算方向向量 n_current = B_current->A_current
+	Eigen::Vector4d tmp_current = N_TP_Under_Image_Current.col(0) - N_TP_Under_Image_Current.col(1);
+	Eigen::Vector3d n_current = { tmp_current[0], tmp_current[1], tmp_current[2] };
+	n_current.normalize();
+
+	cout << "Drill_A_init" << "( " << N_TP_Under_Image_Init.col(0)[0] << " , " << N_TP_Under_Image_Init.col(0)[1] << " , " << N_TP_Under_Image_Init.col(0)[2] << ")." << endl;
+	cout << "Drill_B_init" << "( " << N_TP_Under_Image_Init.col(1)[0] << " , " << N_TP_Under_Image_Init.col(1)[1] << " , " << N_TP_Under_Image_Init.col(1)[2] << ")." << endl;
+	cout << "Drill_A_current" << "( " << N_TP_Under_Image_Current.col(0)[0] << " , " << N_TP_Under_Image_Current.col(0)[1] << " , " << N_TP_Under_Image_Current.col(0)[2] << ")." << endl;
+	cout << "Drill_B_current" << "( " << N_TP_Under_Image_Current.col(1)[0] << " , " << N_TP_Under_Image_Current.col(1)[1] << " , " << N_TP_Under_Image_Current.col(1)[2] << ")." << endl;
+
+	// 计算 初始位置 的方向向量
+	// 计算方向向量 n_init = B_init->A_init
+	Eigen::Vector4d tmp_init = N_TP_Under_Image_Init.col(0) - N_TP_Under_Image_Init.col(1);
+	Eigen::Vector3d n_init = { tmp_init[0], tmp_init[1], tmp_init[2] };
+	n_init.normalize();
+
+	// 构建转化矩阵 T_current
+	// 首先，创建平移矩阵
+	Eigen::Vector4d T_Current_Translate = N_TP_Under_Image_Current.col(1) - N_TP_Under_Image_Init.col(1);
+
+	// 然后，创建旋转矩阵
+	// 计算旋转矩阵 n_init -> n_current ，无法直接使用矩阵计算，这里使用角度计算方法
+	Eigen::Vector3d axis = n_init.cross(n_current);
+	double angle = std::acos(n_init.dot(n_current));
+	// 取出旋转矩阵
+	Eigen::AngleAxisd rotation(angle, axis);
+	Eigen::Matrix3d T_Current_Rotation = rotation.toRotationMatrix();
+
+	// 最后，拼接变化矩阵
+	Eigen::Matrix4Xd T_Current = Eigen::Matrix4d::Identity();
+	// 复制旋转矩阵到左上角
+	T_Current.block<3, 3>(0, 0) = T_Current_Rotation;
+	// 复制平移向量到第四列
+	T_Current.col(3).head(3) = T_Current_Translate.head(3);
+	// 设置最后一行
+	T_Current.row(3) << 0, 0, 0, 1;
+
+	// T_Current转化回 vtkMatrix4x4
+	vtkNew<vtkMatrix4x4> T_Current_vtk;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < T_Current.cols(); j++) {
+			T_Current_vtk->SetElement(i, j, T_Current(i, j));
+		}
+	}
+
+	// 将其应用到初始位置上
+	GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
+	GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->Modified();
+
+	GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
+	GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->Modified();
+}
+
+void HTONDI::UpdateHTODrill02()
+{
+	/* 更新磨钻针尖位置
+		采用直接的矩阵计算方法来进行计算
+		计算末端两点(AB)到当前两点的位置
+
+		T
+	*/
+	cout << "test Drill 01" << endl;
+	if (GetDataStorage()->GetNamedNode("Drill") == nullptr)
+	{
+		cout << "test 02-No Drill" << endl;
+		return;
+	}
+	auto drillIndex = m_VegaToolStorage->GetToolIndexByName("DrillRF");
+	auto tibiaIndex = m_VegaToolStorage->GetToolIndexByName("TibiaRF");
+
+	if (drillIndex == -1 || tibiaIndex == -1)
+	{
+		m_Controls.textBrowser_Action->append("There is no 'DrillRF' or 'TibiaRF' in the toolStorage!");
+		return;
+	}
+
+	// 取出实时矩阵
+	auto T_TibiaRFToCamera = vtkMatrix4x4::New();
+	T_TibiaRFToCamera->DeepCopy(m_T_cameraToTibiaRF);
+	T_TibiaRFToCamera->Invert();
+
+	auto T_CameraToDrillRF = vtkMatrix4x4::New();
+	T_CameraToDrillRF->DeepCopy(m_T_cameraToDrillRF);
+
+	auto T_ImageToTibiaRF = vtkMatrix4x4::New();
+	T_ImageToTibiaRF->DeepCopy(m_ObjectRfToImageMatrix_hto);
+	T_ImageToTibiaRF->Invert();
+
+	auto T_DrillRFtoImage_drill = vtkMatrix4x4::New();
+	T_DrillRFtoImage_drill->DeepCopy(m_T_DrillRFtoImage_drill);
+
+	auto tmpTrans = vtkTransform::New();
+	tmpTrans->Identity();
+	tmpTrans->PostMultiply();
+	tmpTrans->SetMatrix(T_DrillRFtoImage_drill);
+	tmpTrans->Concatenate(T_CameraToDrillRF);
+	tmpTrans->Concatenate(T_TibiaRFToCamera);
+	tmpTrans->Concatenate(T_ImageToTibiaRF);
+	tmpTrans->Update();
+
+	auto T_ImageToDrill = tmpTrans->GetMatrix();
+
+	memcpy_s(m_T_ImageToDrill, sizeof(double) * 16, T_ImageToDrill->GetData(), sizeof(double) * 16);
+
+	GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_ImageToDrill);
+	GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->Modified();
+
+	GetDataStorage()->GetNamedNode("LinkPin")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_ImageToDrill);
+	GetDataStorage()->GetNamedNode("LinkPinLandMarkPointSet")->GetData()->GetGeometry()->Modified();
 }
 
 void HTONDI::UpdateHTOSaw()
@@ -312,7 +353,7 @@ void HTONDI::UpdateHTOSaw()
 		cout << "test Saw 08-05" << endl;
 		/* 方法: 将当前映射后的点 N_SP_Under_Camera_current 与  N_SP_Under_Camera_last 的配准矩阵 T_Current2Last */
 		// 首先将当前点的位置投影到Image中 N_SP_Under_Camera_current = T_Image2SawRF * N_SP_Under_SawRF
-		
+
 		auto landmark_rf = mitk::PointSet::New();
 		// 打印当前点的信息
 		for (int i = 0; i < saw_image->GetLandmarks()->GetSize(); i++)
@@ -374,6 +415,20 @@ void HTONDI::UpdateHTOSaw()
 		GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->Modified();
 	}
 
+	//// 更新摆锯位置
+	//GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
+	//GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->Modified();
+
+	//// 更新实时截骨面
+	//GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
+	//GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData()->GetGeometry()->Modified();
+
+	//// 更新实时截骨面前端点
+	//GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
+	//GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->Modified();
+
+
+
 	// 2. 首先确保克式钉确定的截骨平面是正确的
 	if (m_RealtimeAngleCheck) {
 		cout << "test Saw 10" << endl;
@@ -412,15 +467,14 @@ void HTONDI::UpdateHTOSaw()
 
 		// 输出夹角到实际的位置
 		m_Controls.textBrowser_AxialCut->append("Real time Angle Miss: " + QString::number(angleInDegrees));
-		m_Controls.textBrowser_AngleGuide->append(QString::number(angleInDegrees));
 
 		if (angleInDegrees < 0.5)
 		{
-			m_Controls.textBrowser_AxialCut->append("Current Angle Missing < 0.5 is acceptable.");
+			m_Controls.textBrowser_AxialCut03->setText("Current Angle Missing < 0.5 is acceptable.");
 		}
 		else
 		{
-			m_Controls.textBrowser_AxialCut->append("Current Angle Missing > 0.5 !!");
+			m_Controls.textBrowser_AxialCut03->setText("Current Angle Missing > 0.5 !!");
 		}
 	}
 	
@@ -466,27 +520,27 @@ void HTONDI::UpdateHTOSaw()
 			if (pos_FrontLeft[0] > m_CutIntersectionMinPos[0] && pos_FrontLeft[0] < m_CutIntersectionMaxPos[0])
 			{
 				/* 锯片前端出于胫骨内部 */
-				m_Controls.textBrowser_AxialCut->append("Current Cut Depth: " + QString::number(front2Min));
+				m_Controls.textBrowser_AxialCut02->setText("Current Cut Depth: " + QString::number(front2Min));
 
 				// 进行截骨阈值判断
 				if (m_threshold_SawDepth - front2Min >= 0.2)
 				{
-					m_Controls.textBrowser_AxialCut->append("State: Safe");
+					m_Controls.textBrowser_AxialCut03->setText("State: Safe");
 				}
 				else if (m_threshold_SawDepth - front2Min >= 0 && m_threshold_SawDepth - front2Min < 0.2)
 				{
-					m_Controls.textBrowser_AxialCut->append("State: Warning!");
+					m_Controls.textBrowser_AxialCut03->setText("State: Warning!");
 				}
 			}
 			else if (pos_FrontLeft[0] < m_CutIntersectionMinPos[0])
 			{
 				/* 锯片前端未抵达胫骨 */
-				m_Controls.textBrowser_AxialCut->append("Current Cut Depth: 0, Current Distance From SawFront to Tibia: " + QString::number(front2Min));
+				m_Controls.textBrowser_AxialCut02->setText("Current Cut Depth: 0, Current Distance From SawFront to Tibia: " + QString::number(front2Min));
 			}
 			else if (pos_FrontLeft[0] > m_CutIntersectionMaxPos[0])
 			{
 				/* 锯片前端磨穿达胫骨 */
-				m_Controls.textBrowser_AxialCut->append("State: Saw System Off.");
+				m_Controls.textBrowser_AxialCut03->setText("State: Saw System Off.");
 				m_SawPower = false;
 			}
 		}
@@ -503,6 +557,212 @@ void HTONDI::UpdateHTOSaw()
 	}
 	
 	
+
+	cout << "refresh" << endl;
+}
+
+void  HTONDI::UpdateHTOSaw02()
+{
+	/* 截骨面导航
+		1. 影像实时摆锯导航---初始状态进行投影, 后续状态进行实时更新
+		2. 计算摆锯平面夹角误差
+		3. 计算截骨深度
+		4. 进行截骨模拟渲染
+	*/
+
+	// 1. 进行影像投影计算
+
+	cout << "test Saw 01" << endl;
+	if (GetDataStorage()->GetNamedNode("Saw") == nullptr)
+	{
+		cout << "test Saw 02-No Saw" << endl;
+		return;
+	}
+	auto probeIndex = m_VegaToolStorage->GetToolIndexByName("SawRF");
+	auto objectRfIndex = m_VegaToolStorage->GetToolIndexByName("TibiaRF");
+
+	if (probeIndex == -1 || objectRfIndex == -1)
+	{
+		m_Controls.textBrowser_Action->append("There is no 'SawRF' or 'TibiaRF' in the toolStorage!");
+		return;
+	}
+
+	// 取出实时矩阵
+	auto T_TibiaRFToCamera = vtkMatrix4x4::New();
+	T_TibiaRFToCamera->DeepCopy(m_T_cameraToTibiaRF);
+	T_TibiaRFToCamera->Invert();
+
+	auto T_CameraToSawRF = vtkMatrix4x4::New();
+	T_CameraToSawRF->DeepCopy(m_T_cameraToSawRF);
+
+	auto T_ImageToTibiaRF = vtkMatrix4x4::New();
+	T_ImageToTibiaRF->DeepCopy(m_ObjectRfToImageMatrix_hto);
+	T_ImageToTibiaRF->Invert();
+
+	
+	auto T_SawRFtoImage_saw = vtkMatrix4x4::New();
+	T_SawRFtoImage_saw->DeepCopy(m_T_SawRFtoImage_saw);
+
+	auto tmpTrans = vtkTransform::New();
+	tmpTrans->Identity();
+	tmpTrans->PostMultiply();
+	tmpTrans->SetMatrix(T_SawRFtoImage_saw);
+	tmpTrans->Concatenate(T_CameraToSawRF);
+	tmpTrans->Concatenate(T_TibiaRFToCamera);
+	tmpTrans->Concatenate(T_ImageToTibiaRF);
+	tmpTrans->Update();
+
+	auto T_ImageToSaw = tmpTrans->GetMatrix();
+
+	memcpy_s(m_T_ImageToSaw, sizeof(double) * 16, T_ImageToSaw->GetData(), sizeof(double) * 16);
+
+	GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_ImageToSaw);
+	GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->Modified();
+
+
+	GetDataStorage()->GetNamedNode("SawLandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_ImageToSaw);
+	GetDataStorage()->GetNamedNode("SawLandMarkPointSet")->GetData()->GetGeometry()->Modified();
+
+	// 更新实时截骨面
+	GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_ImageToSaw);
+	GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData()->GetGeometry()->Modified();
+
+	cout << "test Saw 08-09" << endl;
+	// 更新实时截骨面前端点
+	GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_ImageToSaw);
+	GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->Modified();
+
+
+
+
+	// 2. 首先确保克式钉确定的截骨平面是正确的
+	if (m_RealtimeAngleCheck) {
+		cout << "test Saw 10" << endl;
+		// 计算法向量夹角
+		auto sourceCutPlane01 = dynamic_cast<mitk::Surface*>(GetDataStorage()->GetNamedNode("1st cut plane")->GetData());
+		auto sourceCutPlanePolyData01 = sourceCutPlane01->GetVtkPolyData();
+
+		cout << "test Saw 11" << endl;
+		auto currentCutPlane01 = dynamic_cast<mitk::Surface*>(GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData());
+		auto currentCutPlanePolyData01 = currentCutPlane01->GetVtkPolyData();
+
+		cout << "test Saw 12" << endl;
+		Eigen::Vector3d normalSourcePlane01, normalCurrentPlane01;
+		normalSourcePlane01 = ExtractNormalFromPlane("1st cut plane");
+		normalCurrentPlane01 = ExtractNormalFromPlane("CurrentCutPlane01");
+
+		// 计算两个方向向量之间的夹角
+		double dotProduct = normalSourcePlane01[0] * normalCurrentPlane01[0] + normalSourcePlane01[1] * normalCurrentPlane01[1] + normalSourcePlane01[2] * normalCurrentPlane01[2]; // 点积
+
+		// 计算向量长度
+		double magnitude1 = sqrt(pow(normalSourcePlane01[0], 2) + pow(normalSourcePlane01[1], 2) + pow(normalSourcePlane01[2], 2));
+		double magnitude2 = sqrt(pow(normalCurrentPlane01[0], 2) + pow(normalCurrentPlane01[1], 2) + pow(normalCurrentPlane01[2], 2));
+
+		// 计算夹角的余弦值
+		double cosAngle = dotProduct / (magnitude1 * magnitude2);
+
+		// 使用反余弦函数计算夹角（弧度）
+		double angleInRadians = acos(cosAngle);
+
+		// 将弧度转换为度数，保留1位小数
+		double angleInDegrees = round(angleInRadians * (180.0 / M_PI) * 10) / 10;
+		if (angleInDegrees > 90)
+		{
+			angleInDegrees = 180.0 - angleInDegrees;
+		}
+
+		// 输出夹角到实际的位置
+		m_Controls.textBrowser_AxialCut->append("Real time Angle Miss: " + QString::number(angleInDegrees));
+
+		if (angleInDegrees < 0.5)
+		{
+			m_Controls.textBrowser_AxialCut03->setText("Current Angle Missing < 0.5 is acceptable.");
+		}
+		else
+		{
+			m_Controls.textBrowser_AxialCut03->setText("Current Angle Missing > 0.5 !!");
+		}
+	}
+
+
+	// 3. 在确定截骨角度正常后，开始进行截骨
+	// - 首先计算截骨线 ==> 然后计算截骨深度
+	// - 这里假设摆锯前端与规划截骨面前端平行
+
+	// 3.1 计算截骨线，获取最值点
+	if (m_RealtimeCutPlaneCheck == true)
+	{
+		// 以调整好的克式钉角度进行截骨计算
+		GetRealTimeIntersectionLine("CurrentCutPlane01", "tibiaSurface");
+		m_RealtimeCutPlaneCheck = false;
+	}
+
+	// 3.2 计算截骨深度
+	if (m_RealtimeCutCheck == true)
+	{
+		// 取出实时截骨面的前端点位置
+		auto tmpNodes = GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial");
+		if (tmpNodes) {
+			// 获取数据
+			mitk::Point3D point1 = dynamic_cast<mitk::PointSet*>(tmpNodes->GetData())->GetPoint(1);
+			mitk::Point3D point2 = dynamic_cast<mitk::PointSet*>(tmpNodes->GetData())->GetPoint(2);
+
+			// 计算截骨深度，点到直线的距离
+			double front2Min, front2Max;
+			double pos_FrontLeft[3], pos_FrontRight[3];
+			pos_FrontLeft[0] = point1[0];
+			pos_FrontLeft[1] = point1[1];
+			pos_FrontLeft[2] = point1[2];
+
+			pos_FrontRight[0] = point2[0];
+			pos_FrontRight[1] = point2[1];
+			pos_FrontRight[2] = point2[2];
+
+			// 得到点线距离
+			front2Min = DistancePointToLine(pos_FrontLeft, m_CutIntersectionMinPos, m_CutIntersectionMaxPos);
+			front2Max = DistancePointToLine(pos_FrontRight, m_CutIntersectionMaxPos, m_CutIntersectionMaxPos);
+
+			// 依据点坐标来进行判别输出
+			if (pos_FrontLeft[0] > m_CutIntersectionMinPos[0] && pos_FrontLeft[0] < m_CutIntersectionMaxPos[0])
+			{
+				/* 锯片前端出于胫骨内部 */
+				m_Controls.textBrowser_AxialCut02->setText("Current Cut Depth: " + QString::number(front2Min));
+
+				// 进行截骨阈值判断
+				if (m_threshold_SawDepth - front2Min >= 0.2)
+				{
+					m_Controls.textBrowser_AxialCut03->setText("State: Safe");
+				}
+				else if (m_threshold_SawDepth - front2Min >= 0 && m_threshold_SawDepth - front2Min < 0.2)
+				{
+					m_Controls.textBrowser_AxialCut03->setText("State: Warning!");
+				}
+			}
+			else if (pos_FrontLeft[0] < m_CutIntersectionMinPos[0])
+			{
+				/* 锯片前端未抵达胫骨 */
+				m_Controls.textBrowser_AxialCut02->setText("Current Cut Depth: 0, Current Distance From SawFront to Tibia: " + QString::number(front2Min));
+			}
+			else if (pos_FrontLeft[0] > m_CutIntersectionMaxPos[0])
+			{
+				/* 锯片前端磨穿达胫骨 */
+				m_Controls.textBrowser_AxialCut03->setText("State: Saw System Off.");
+				m_SawPower = false;
+			}
+		}
+		else {
+			m_Controls.textBrowser_Action->append("Error: pointSetInRealPlaneAxial is missing!");
+		}
+	}
+
+	// 3.3 模拟截骨
+	if (m_SawPower == true)
+	{
+		// 电源于开启状态则进行截骨模拟
+		// TestCut
+	}
+
+
 
 	cout << "refresh" << endl;
 }
@@ -544,7 +804,7 @@ bool HTONDI::OnStartAxialGuideClicked()
 	}
 
 	// 先运行一次，更新到目标位置上来
-	UpdateHTOSaw();
+	//UpdateHTOSaw();
 	
 	// 对Saw生成实时截骨平面
 	if (m_HTOSawUpdateTimer == nullptr)
@@ -558,7 +818,7 @@ bool HTONDI::OnStartAxialGuideClicked()
 	//cout << "stop probe visulization" << endl;
 
 
-	connect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw()));
+	connect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw02()));
 	m_HTOSawUpdateTimer->start(100);
 	
 	// 启动导航的同时，计算误差角度
@@ -1320,8 +1580,8 @@ bool HTONDI::OnStartSagGuideClicked()
 	}
 	m_Controls.textBrowser_Action->append("Generate Real time Cut plane");
 
-	disconnect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw()));
-	connect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw()));
+	disconnect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw02()));
+	connect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw02()));
 	m_HTOSawUpdateTimer->start(100);
 
 
@@ -1603,11 +1863,8 @@ bool HTONDI::OnStartDrillGuideClicked()
 	}
 	m_Controls.textBrowser_Action->append("Generate Real time Drill");
 
-	// 先更新到合适的位置
-	UpdateHTODrill();
-
-	disconnect(m_HTODrillUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTODrill()));
-	connect(m_HTODrillUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTODrill()));
+	disconnect(m_HTODrillUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTODrill02()));
+	connect(m_HTODrillUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTODrill02()));
 	m_HTODrillUpdateTimer->start(100);
 
 	return true;
@@ -1830,4 +2087,59 @@ void HTONDI::RealTimeTraverseIntersectionLines(vtkSmartPointer<vtkPolyData> inte
 		return;
 	}
 
+}
+
+
+// 替换磨钻钻头模型
+bool HTONDI::OnChangeKeShiPin()
+{
+	auto tmpKeShiPin = GetDataStorage()->GetNamedNode("Drill");
+	auto tmpKeShiPin_Points = GetDataStorage()->GetNamedNode("DrillLandMarkPointSet");
+
+	auto tmpLinkPin = GetDataStorage()->GetNamedNode("LinkPin");
+	auto tmpLinkPin_Points = GetDataStorage()->GetNamedNode("LinkPinLandMarkPointSet");
+
+	if (tmpKeShiPin)
+	{
+		tmpKeShiPin->SetVisibility(true);
+		tmpKeShiPin_Points->SetVisibility(true);
+	}
+
+	if (tmpLinkPin)
+	{
+		tmpLinkPin->SetVisibility(false);
+		tmpLinkPin_Points->SetVisibility(false);
+	}
+
+	// 同时记录下当前末端中点位置
+	//m_Controls.label_set_x->setText("x:" + QString::number());
+	return true;
+}
+
+
+// 替换磨钻钻头模型
+bool HTONDI::OnChangeLinkPin()
+{
+	auto tmpKeShiPin = GetDataStorage()->GetNamedNode("Drill");
+	auto tmpKeShiPin_Points = GetDataStorage()->GetNamedNode("DrillLandMarkPointSet");
+
+	auto tmpLinkPin = GetDataStorage()->GetNamedNode("LinkPin");
+	auto tmpLinkPin_Points = GetDataStorage()->GetNamedNode("LinkPinLandMarkPointSet");
+
+	if (tmpKeShiPin)
+	{
+		tmpKeShiPin->SetVisibility(false);
+		tmpKeShiPin_Points->SetVisibility(false);
+	}
+
+	if (tmpLinkPin)
+	{
+		tmpLinkPin->SetVisibility(true);
+		tmpLinkPin_Points->SetVisibility(true);
+	}
+
+	// 同时记录下当前末端中点位置
+
+
+	return true;
 }

@@ -766,10 +766,20 @@ void HTONDI::RotateMinus()
 	double direction_cutPlane[3]{ vx / length,vy / length,vz / length };
 	double angle = m_Controls.LineEdit_transAngle->text().toDouble();
 
+	// 对于左腿右腿，设计不同的旋转轴
+	// 0:右腿. 1：左腿
 	double center[3];
-	center[0] = mitkPointSet1->GetPoint(0)[0];
-	center[1] = mitkPointSet1->GetPoint(0)[1];
-	center[2] = mitkPointSet1->GetPoint(0)[2];
+	if (judgModel_flag == 1) {
+		center[0] = mitkPointSet1->GetPoint(3)[0];
+		center[1] = mitkPointSet1->GetPoint(3)[1];
+		center[2] = mitkPointSet1->GetPoint(3)[2];
+	}
+	else if(judgModel_flag == 0) {
+		center[0] = mitkPointSet1->GetPoint(0)[0];
+		center[1] = mitkPointSet1->GetPoint(0)[1];
+		center[2] = mitkPointSet1->GetPoint(0)[2];
+	}
+	
 
 	// 应用旋转
 	Rotate(center,direction_cutPlane,angle,distalTibiaSurface->GetData());
@@ -823,6 +833,8 @@ void HTONDI::RotateMinus()
 
 void HTONDI::RotatePlus()
 {
+	// 首先需要判别合页点是哪两个
+	// 左腿：
 	// 对截骨远端进行旋转，绕合页点轴向顺时针
 	auto distalTibiaSurface = GetDataStorage()->GetNamedNode("distal tibiaSurface");
 	if (distalTibiaSurface == nullptr) {
@@ -836,10 +848,19 @@ void HTONDI::RotatePlus()
 	double direction_cutPlane[3]{ vx / length,vy / length,vz / length };
 	double angle = -m_Controls.LineEdit_transAngle->text().toDouble();
 
+	// 对于左腿右腿，设计不同的旋转轴
+	// 0:右腿. 1：左腿
 	double center[3];
-	center[0] = mitkPointSet1->GetPoint(0)[0];
-	center[1] = mitkPointSet1->GetPoint(0)[1];
-	center[2] = mitkPointSet1->GetPoint(0)[2];
+	if (judgModel_flag == 1) {
+		center[0] = mitkPointSet1->GetPoint(3)[0];
+		center[1] = mitkPointSet1->GetPoint(3)[1];
+		center[2] = mitkPointSet1->GetPoint(3)[2];
+	}
+	else if (judgModel_flag == 0) {
+		center[0] = mitkPointSet1->GetPoint(0)[0];
+		center[1] = mitkPointSet1->GetPoint(0)[1];
+		center[2] = mitkPointSet1->GetPoint(0)[2];
+	}
 
 	// 应用旋转
 	Rotate(center, direction_cutPlane, angle, distalTibiaSurface->GetData());

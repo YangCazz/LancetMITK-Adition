@@ -163,6 +163,7 @@ public slots:
 
 	// 探针跟踪
 	void UpdateHTOProbe();
+	void UpdateHTOProbe02();
 
 	// 参数初始化
 	void OnInitHTOTibiaRegisClicked();
@@ -200,6 +201,13 @@ public slots:
 
 	void UpdateHTOSaw();
 	void UpdateHTODrill();
+
+	void UpdateHTOSaw02();
+	void UpdateHTODrill02();
+
+	bool OnChangeKeShiPin();
+	bool OnChangeLinkPin();
+
 	// =================================================================
 	
 	// ========================== 术后验证 ==============================
@@ -343,8 +351,24 @@ protected:
   double CalculateCalibrationError();
   // 可视化采集的节点
   bool OnVisualizeCollectedPoints();
+  // ========================= 全局导航数据 ==========================
+  double m_T_cameraToProbeRF[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+  double m_T_cameraToFemurRF[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+  double m_T_cameraToTibiaRF[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+  double m_T_cameraToSawRF[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+  double m_T_cameraToDrillRF[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+  double m_T_cameraToCalibratorRF[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
   
+  // 计算得到转化矩阵
+  double m_T_ProbeRFtoImage_probe[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+  double m_T_imageToProbe[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+  double m_T_ImageToDrill[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+
+  double m_T_calibratorRFtoDrill[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+  double m_T_DrillRFtoImage_drill[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
   
+  double m_T_SawRFtoImage_saw[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
+  double m_T_ImageToSaw[16]{ 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
 
   // ========================= 术前规划 ==============================
   // 手术类型注册-默认为左腿
@@ -407,6 +431,8 @@ protected:
 
   mitk::NavigationTool::Pointer m_saw;
   mitk::NavigationTool::Pointer m_drill;
+
+  lancet::NavigationObject::Pointer probe_image;
 
   lancet::NavigationObject::Pointer saw_image;
   lancet::NavigationObject::Pointer drill_image;
@@ -472,9 +498,13 @@ protected:
   // 当前-探针尖端点在Image下的位置
   Eigen::Vector4d m_CurrentTipOnImage;
 
+  // 定义探针两点在坐标系下的点位置
+  Eigen::Vector4d m_ProbePointOnProbeRF_A = { 0.0, 0.0, 0.0, 1.0 };
+  Eigen::Vector4d m_ProbePointOnProbeRF_B = { -1.0, 0.0, 0.0, 1.0 };
+
   // 定义磨钻末端点在磨钻物理坐标系下的点位置
-  Eigen::Vector4d m_DrillPointOnCalibratorRF_head;
-  Eigen::Vector4d m_DrillPointOnCalibratorRF_tail = { 120.0, 0.0, 0.0, 1.0 };
+  Eigen::Vector4d m_DrillPointOnCalibratorRF_head = { 120.0, 0.0, 0.0, 1.0 };
+  Eigen::Vector4d m_DrillPointOnCalibratorRF_tail = { 0.0, 0.0, 0.0, 1.0 };
 
   // 定义器械标定点在RF下的位置
   std::vector<Eigen::Vector4d> m_SawPointsOnSawRF;
@@ -540,6 +570,7 @@ protected:
   void CollectHTOTibiaLandmark(int index);
   void CollectHTOFemurLandmark(int index);
 
+  bool start_probe = false;
   bool start_drill = false;
   bool start_saw = false;
   
@@ -565,6 +596,13 @@ protected:
 
   // 磨钻标定参数
 
+  // 标记当前磨钻末端应该到达的位置
+  double m_drill_tip[3] = { 0.0,0.0,0.0 };
+
+  double m_KeShi_Pos01[3] = { 0.0,0.0,0.0 };
+  double m_KeShi_Pos02[3] = { 0.0,0.0,0.0 };
+
+  double m_Current_drill_Pos01[3] = { 0.0,0.0,0.0 };
 
   Ui::HTONDIControls m_Controls;
 };

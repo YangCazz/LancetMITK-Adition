@@ -144,6 +144,149 @@ bool HTONDI::OnVegaVisualizeTimer()
 		m_VegaVisualizer->Update();
 		this->RequestRenderWindowUpdate();
 	}
+
+	// Update the global variables which hold the camera data
+	auto probeRFindex = m_VegaToolStorage->GetToolIndexByName("ProbeRF");
+	auto femurRFindex = m_VegaToolStorage->GetToolIndexByName("FemurRF");
+	auto tibiaRFindex = m_VegaToolStorage->GetToolIndexByName("TibiaRF");
+	auto sawRFindex = m_VegaToolStorage->GetToolIndexByName("SawRF");
+	auto drillRFindex = m_VegaToolStorage->GetToolIndexByName("DrillRF");
+	auto calibratorRFindex = m_VegaToolStorage->GetToolIndexByName("CalibratorRF");
+
+	mitk::NavigationData::Pointer nd_cameraToProbeRF = m_VegaSource->GetOutput(probeRFindex);
+	mitk::NavigationData::Pointer nd_cameraToFemurRF = m_VegaSource->GetOutput(femurRFindex);
+	mitk::NavigationData::Pointer nd_cameraToTibiaRF = m_VegaSource->GetOutput(tibiaRFindex);
+	mitk::NavigationData::Pointer nd_cameraToSawRF = m_VegaSource->GetOutput(sawRFindex);
+	mitk::NavigationData::Pointer nd_cameraToDrillRF = m_VegaSource->GetOutput(drillRFindex);
+	mitk::NavigationData::Pointer nd_cameraToCalibratorRF = m_VegaSource->GetOutput(calibratorRFindex);
+
+	bool m_Stat_cameraToProbeRF = nd_cameraToProbeRF->IsDataValid();
+	bool m_Stat_cameraToFemurRF = nd_cameraToFemurRF->IsDataValid();
+	bool m_Stat_cameraToTibiaRF = nd_cameraToTibiaRF->IsDataValid();
+	bool m_Stat_cameraToSawRF = nd_cameraToSawRF->IsDataValid();
+	bool m_Stat_cameraToDrillRF = nd_cameraToDrillRF->IsDataValid();
+	bool m_Stat_cameraToCalibratorRF = nd_cameraToCalibratorRF->IsDataValid();
+
+	if (m_Stat_cameraToProbeRF)
+	{
+		auto tmpMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+		mitk::TransferItkTransformToVtkMatrix(nd_cameraToProbeRF->GetAffineTransform3D().GetPointer(), tmpMatrix);
+		memcpy_s(m_T_cameraToProbeRF, sizeof(double) * 16, tmpMatrix->GetData(), sizeof(double) * 16);
+		
+		m_Controls.textBrowser_ProbeRF->clear();
+		for (int i = 0; i < 16; i += 4) {
+			m_Controls.textBrowser_ProbeRF->append(
+				QString::number(m_T_cameraToProbeRF[i], 'f', 1) + "  " + 
+				QString::number(m_T_cameraToProbeRF[i + 1], 'f', 1) + "  " + 
+				QString::number(m_T_cameraToProbeRF[i + 2], 'f', 1) + "  " + 
+				QString::number(m_T_cameraToProbeRF[i + 3], 'f', 1));
+		}
+	}
+	else
+	{
+		m_Controls.textBrowser_ProbeRF->setText("None");
+	}
+
+	if (m_Stat_cameraToFemurRF)
+	{
+		auto tmpMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+		mitk::TransferItkTransformToVtkMatrix(nd_cameraToFemurRF->GetAffineTransform3D().GetPointer(), tmpMatrix);
+		memcpy_s(m_T_cameraToFemurRF, sizeof(double) * 16, tmpMatrix->GetData(), sizeof(double) * 16);
+
+		m_Controls.textBrowser_FemurRF->clear();
+		for (int i = 0; i < 16; i += 4) {
+			m_Controls.textBrowser_FemurRF->append(
+				QString::number(m_T_cameraToFemurRF[i], 'f', 1) + "  " +
+				QString::number(m_T_cameraToFemurRF[i + 1], 'f', 1) + "  " +
+				QString::number(m_T_cameraToFemurRF[i + 2], 'f', 1) + "  " +
+				QString::number(m_T_cameraToFemurRF[i + 3], 'f', 1));
+		}
+	}
+	else
+	{
+		m_Controls.textBrowser_FemurRF->setText("None");
+	}
+
+	if (m_Stat_cameraToTibiaRF)
+	{
+		auto tmpMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+		mitk::TransferItkTransformToVtkMatrix(nd_cameraToTibiaRF->GetAffineTransform3D().GetPointer(), tmpMatrix);
+		memcpy_s(m_T_cameraToTibiaRF, sizeof(double) * 16, tmpMatrix->GetData(), sizeof(double) * 16);
+
+		m_Controls.textBrowser_TibiaRF->clear();
+		for (int i = 0; i < 16; i += 4) {
+			m_Controls.textBrowser_TibiaRF->append(
+				QString::number(m_T_cameraToTibiaRF[i], 'f', 1) + "  " +
+				QString::number(m_T_cameraToTibiaRF[i + 1], 'f', 1) + "  " +
+				QString::number(m_T_cameraToTibiaRF[i + 2], 'f', 1) + "  " +
+				QString::number(m_T_cameraToTibiaRF[i + 3], 'f', 1));
+		}
+	}
+	else
+	{
+		m_Controls.textBrowser_TibiaRF->setText("None");
+	}
+
+	if (m_Stat_cameraToSawRF)
+	{
+		auto tmpMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+		mitk::TransferItkTransformToVtkMatrix(nd_cameraToSawRF->GetAffineTransform3D().GetPointer(), tmpMatrix);
+		memcpy_s(m_T_cameraToSawRF, sizeof(double) * 16, tmpMatrix->GetData(), sizeof(double) * 16);
+
+		m_Controls.textBrowser_SawRF->clear();
+		for (int i = 0; i < 16; i += 4) {
+			m_Controls.textBrowser_SawRF->append(
+				QString::number(m_T_cameraToSawRF[i], 'f', 1) + "  " +
+				QString::number(m_T_cameraToSawRF[i + 1], 'f', 1) + "  " +
+				QString::number(m_T_cameraToSawRF[i + 2], 'f', 1) + "  " +
+				QString::number(m_T_cameraToSawRF[i + 3], 'f', 1));
+		}
+	}
+	else
+	{
+		m_Controls.textBrowser_SawRF->setText("None");
+	}
+
+	if (m_Stat_cameraToDrillRF)
+	{
+		auto tmpMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+		mitk::TransferItkTransformToVtkMatrix(nd_cameraToDrillRF->GetAffineTransform3D().GetPointer(), tmpMatrix);
+		memcpy_s(m_T_cameraToDrillRF, sizeof(double) * 16, tmpMatrix->GetData(), sizeof(double) * 16);
+
+		m_Controls.textBrowser_DrillRF->clear();
+		for (int i = 0; i < 16; i += 4) {
+			m_Controls.textBrowser_DrillRF->append(
+				QString::number(m_T_cameraToDrillRF[i], 'f', 1) + "  " +
+				QString::number(m_T_cameraToDrillRF[i + 1], 'f', 1) + "  " +
+				QString::number(m_T_cameraToDrillRF[i + 2], 'f', 1) + "  " +
+				QString::number(m_T_cameraToDrillRF[i + 3], 'f', 1));
+		}
+	}
+	else
+	{
+		m_Controls.textBrowser_DrillRF->setText("None");
+	}
+
+	if (m_Stat_cameraToCalibratorRF)
+	{
+		auto tmpMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+		mitk::TransferItkTransformToVtkMatrix(nd_cameraToCalibratorRF->GetAffineTransform3D().GetPointer(), tmpMatrix);
+		memcpy_s(m_T_cameraToCalibratorRF, sizeof(double) * 16, tmpMatrix->GetData(), sizeof(double) * 16);
+
+		m_Controls.textBrowser_CalibratorRF->clear();
+		for (int i = 0; i < 16; i += 4) {
+			m_Controls.textBrowser_CalibratorRF->append(
+				QString::number(m_T_cameraToCalibratorRF[i], 'f', 1) + "  " +
+				QString::number(m_T_cameraToCalibratorRF[i + 1], 'f', 1) + "  " +
+				QString::number(m_T_cameraToCalibratorRF[i + 2], 'f', 1) + "  " +
+				QString::number(m_T_cameraToCalibratorRF[i + 3], 'f', 1));
+		}
+	}
+	else
+	{
+		m_Controls.textBrowser_CalibratorRF->setText("None");
+	}
+
 	return true;
 }
 
