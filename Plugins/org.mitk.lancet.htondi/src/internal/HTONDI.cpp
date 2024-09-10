@@ -266,6 +266,7 @@ void HTONDI::CreateQT_PreoperativePlan()
 	/* 术前规划
 		1. 调试数据准备
 		2. 截骨面规划
+		3. 克式钉规划
 		3. 力线规划
 		4. 撑开角度规划
 		5. 钢板规划
@@ -284,6 +285,11 @@ void HTONDI::CreateQT_PreoperativePlan()
 	connect(m_Controls.createCutPlane_pushButton, &QPushButton::clicked, this, &HTONDI::OnGenerateCutPlaneClicked);
 	connect(m_Controls.cutTibia_pushButton, &QPushButton::clicked, this, &HTONDI::OnCutTibetClicked);
 	connect(m_Controls.resetCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnResetCutClicked);
+
+	// 3. 克式钉规划
+	connect(m_Controls.generateKeshiPinPos_pushButton, &QPushButton::clicked, this, &HTONDI::OnGenerateKeshiPinClicked);
+	connect(m_Controls.recordKeshiPinPos_pushButton, &QPushButton::clicked, this, &HTONDI::OnRecordKeshiPinClicked);
+	connect(m_Controls.visuliazeKeshiPin_pushButton, &QPushButton::clicked, this, &HTONDI::OnVisiualKeshiPinClicked);
 
 
 	// 3. 力线规划
@@ -397,13 +403,24 @@ void HTONDI::CreateQT_MidPlan()
 void HTONDI::CreateQT_MidOperation()
 {
 	/* 术中导航
-		1. 截骨导航
-		2. 磨钻导航
-		3. 术中力线验证
+	* 1. 磨钻导航
+	* 2. 截骨导航
+	* 3. 磨钻导航
+	* 4. 术中力线验证
 	*/ 
 	
+	// 1. 磨钻导航
+	connect(m_Controls.pushButton_ChangeKeShiPin, &QPushButton::clicked, this, &HTONDI::OnChangeKeShiPinClicked);
+	connect(m_Controls.pushButton_ChangeLinkPin, &QPushButton::clicked, this, &HTONDI::OnChangeLinkPinClicked);
 
-	// 1. 截骨导航
+	connect(m_Controls.pushButton_setLink01, &QPushButton::clicked, this, &HTONDI::OnSetLink01Clicked);
+	connect(m_Controls.pushButton_setLink02, &QPushButton::clicked, this, &HTONDI::OnSetLink02Clicked);
+	connect(m_Controls.pushButton_setLink03, &QPushButton::clicked, this, &HTONDI::OnSetLink03Clicked);
+
+	connect(m_Controls.pushButton_setKeShi01, &QPushButton::clicked, this, &HTONDI::OnSetKeShi01Clicked);
+	connect(m_Controls.pushButton_setKeShi02, &QPushButton::clicked, this, &HTONDI::OnSetKeShi02Clicked);
+
+	// 2. 截骨导航
 	// 水平截骨
 	connect(m_Controls.guideAxialCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartAxialGuideClicked);
 	connect(m_Controls.startAxialCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartAxialCutClicked);
@@ -424,7 +441,7 @@ void HTONDI::CreateQT_MidOperation()
 
 
 
-	// 2. 钢板安装导航
+	// 3. 钢板安装导航
 	connect(m_Controls.guideDrill_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartDrillGuideClicked);
 	connect(m_Controls.startDrill_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartDrillHoleClicked);
 

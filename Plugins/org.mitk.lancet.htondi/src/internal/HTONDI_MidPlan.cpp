@@ -1062,7 +1062,7 @@ bool HTONDI::OnCalibrateDrillClicked()
 			+ QString::number(rotAxis[1]) + " / "
 			+ QString::number(rotAxis[2]));
 
-		double rotAngle = 180 * acos(z_drill_Under_CalibratorRF.dot(z_drill_Under_Image)) / 3.141592654;
+		double rotAngle = 180 - 180 * acos(z_drill_Under_CalibratorRF.dot(z_drill_Under_Image)) / 3.141592654;
 		m_Controls.textBrowser_DrillGuide->append("rotAngle:" + QString::number(rotAngle));
 		cout << "rotAngle: " << rotAngle << endl;
 

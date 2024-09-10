@@ -66,6 +66,10 @@ bool HTONDI::OnCheckBaseDataClicked()
 	auto LinkPinLandmark = GetDataStorage()->GetNamedNode("LinkPinLandMarkPointSet");
 	auto Probe = GetDataStorage()->GetNamedNode("Probe");
 	auto ProbeLandmark = GetDataStorage()->GetNamedNode("ProbeLandMarkPointSet");
+	auto KeshiPin01 = GetDataStorage()->GetNamedNode("KeshiPin01");
+	auto KeshiPin01Points = GetDataStorage()->GetNamedNode("KeshiPin01LandMarkPointSet");
+	auto KeshiPin02 = GetDataStorage()->GetNamedNode("KeshiPin02");
+	auto KeshiPin02Points = GetDataStorage()->GetNamedNode("KeshiPin02LandMarkPointSet");
 
 	// 确认手术模型的模式
 	if (m_Controls.checkBox_LeftlimbHTO->isChecked())
@@ -205,7 +209,28 @@ bool HTONDI::OnCheckBaseDataClicked()
 		ProbeLandmark->SetVisibility(false);
 
 	}
-
+	if (KeshiPin01)
+	{
+		m_Controls.textBrowser_Action->append("load KeshiPin01.");
+		m_Controls.checkBox_point20->setChecked(true);
+		KeshiPin01->SetVisibility(false);
+	}
+	if (KeshiPin02)
+	{
+		m_Controls.textBrowser_Action->append("load KeshiPin02.");
+		m_Controls.checkBox_point21->setChecked(true);
+		KeshiPin02->SetVisibility(false);
+	}
+	if (KeshiPin01Points)
+	{
+		m_Controls.textBrowser_Action->append("load KeshiPin01Points.");
+		KeshiPin01Points->SetVisibility(false);
+	}
+	if (KeshiPin02Points)
+	{
+		m_Controls.textBrowser_Action->append("load KeshiPin02Points.");
+		KeshiPin02Points->SetVisibility(false);
+	}
 	GetDataStorage()->Modified();
 	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 
@@ -1073,14 +1098,16 @@ bool HTONDI::OnSetFinalPosClick()
 	{
 		// 创建一个点集，用于记录所有计算出的钻孔中心位置
 		mitk::PointSet::Pointer holeCenters = mitk::PointSet::New();
-		// 中 -> 左 -> 右
+		// 左 -> 中 -> 右
 		auto point1 = dynamic_cast<mitk::PointSet*>(steelPlatePoints->GetData())->GetPoint(0);
 		auto point2 = dynamic_cast<mitk::PointSet*>(steelPlatePoints->GetData())->GetPoint(1);
 		auto point3 = dynamic_cast<mitk::PointSet*>(steelPlatePoints->GetData())->GetPoint(2);
 		holeCenters->InsertPoint(0, point1);
 		holeCenters->InsertPoint(1, point2);
 		holeCenters->InsertPoint(2, point3);
-
+		LinkPinPos_Set.push_back(point1);
+		LinkPinPos_Set.push_back(point2);
+		LinkPinPos_Set.push_back(point3);
 		// 进行可视化
 		auto holeCentersNode = GetDataStorage()->GetNamedNode("SteelPlateHolePointSet");
 		if (holeCentersNode != nullptr)
@@ -1100,6 +1127,21 @@ bool HTONDI::OnSetFinalPosClick()
 			holeCentersNode->SetProperty("pointsize", mitk::FloatProperty::New(5.0));
 			GetDataStorage()->Add(holeCentersNode);
 		}
+		m_Controls.textBrowser_Action->append("LinkPinPos 01: (" 
+			+ QString::number(LinkPinPos_Set[0][0]) + ", "
+			+ QString::number(LinkPinPos_Set[0][1]) + ", "
+			+ QString::number(LinkPinPos_Set[0][2]) + ")"
+		);
+		m_Controls.textBrowser_Action->append("LinkPinPos 02: (" 
+			+ QString::number(LinkPinPos_Set[1][0]) + ", "
+			+ QString::number(LinkPinPos_Set[1][1]) + ", "
+			+ QString::number(LinkPinPos_Set[1][2]) + ")"
+		);
+		m_Controls.textBrowser_Action->append("LinkPinPos 03: (" 
+			+ QString::number(LinkPinPos_Set[2][0]) + ", "
+			+ QString::number(LinkPinPos_Set[2][1]) + ", "
+			+ QString::number(LinkPinPos_Set[2][2]) + ")"
+		);
 	}
 	else
 	{
@@ -1909,4 +1951,84 @@ void HTONDI::GetDistancefromTibia()
 }
 
 
+bool HTONDI::OnGenerateKeshiPinClicked()
+{
+	/* 计算克式钉子应该转移到的位置 */
+	m_Controls.textBrowser_Action->append("Action: Generate KeshiPin.");
 
+	mitk::Point3D Keshi01_tail_destin = mitkPointSet1->GetPoint(2);
+	mitk::Point3D Keshi01_head_destin = mitkPointSet1->GetPoint(1);
+
+	mitk::Point3D Keshi02_tail_destin = mitkPointSet1->GetPoint(3);
+	mitk::Point3D Keshi02_head_destin = mitkPointSet1->GetPoint(0);
+
+	auto Keshi01_raw = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("KeshiPin01LandMarkPointSet")->GetData());
+	auto Keshi02_raw = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("KeshiPin02LandMarkPointSet")->GetData());
+
+	auto Keshi01_tail_raw = Keshi01_raw->GetPoint(0);
+	auto Keshi01_head_raw = Keshi01_raw->GetPoint(1);
+
+	auto Keshi02_tail_raw = Keshi02_raw->GetPoint(0);
+	auto Keshi02_head_raw = Keshi02_raw->GetPoint(1);
+
+	// 将
+
+
+	return true;
+}
+
+bool HTONDI::OnRecordKeshiPinClicked()
+{
+	m_Controls.textBrowser_Action->append("Action: Record KeshiPin Pos.");
+
+	auto KeShi01_Tail_tmp = mitkPointSet1->GetPoint(2);
+	auto KeShi01_Head_tmp = mitkPointSet1->GetPoint(1);
+	auto KeShi02_Tail_tmp = mitkPointSet1->GetPoint(3);
+	auto KeShi02_Head_tmp = mitkPointSet1->GetPoint(0);
+
+	Eigen::Vector3d KeShi01_Tail, KeShi01_Head;
+	KeShi01_Tail = { KeShi01_Tail_tmp[0], KeShi01_Tail_tmp[1],KeShi01_Tail_tmp[2] };
+	KeShi01_Head = { KeShi01_Head_tmp[0], KeShi01_Head_tmp[1],KeShi01_Head_tmp[2] };
+
+	// 保存全局量
+	normal_KeShi01 = KeShi01_Tail - KeShi01_Head;
+	normal_KeShi01.norm();
+
+
+	Eigen::Vector3d KeShi02_Tail, KeShi02_Head;
+	KeShi02_Tail = { KeShi02_Tail_tmp[0], KeShi02_Tail_tmp[1],KeShi02_Tail_tmp[2] };
+	KeShi02_Head = { KeShi02_Head_tmp[0], KeShi02_Head_tmp[1],KeShi02_Head_tmp[2] };
+
+	// 保存全局量
+	normal_KeShi02 = KeShi02_Tail - KeShi02_Head;
+	normal_KeShi02.norm();
+
+	m_Controls.textBrowser_Action->append("KeshiPin01: (" + QString::number(normal_KeShi01[0]) + ", " + QString::number(normal_KeShi01[1]) + ", " + QString::number(normal_KeShi01[2]) + ")");
+	m_Controls.textBrowser_Action->append("KeshiPin02: (" + QString::number(normal_KeShi02[0]) + ", " + QString::number(normal_KeShi02[1]) + ", " + QString::number(normal_KeShi02[2]) + ")");
+
+	KeShikPinPos_Set.push_back(KeShi01_Tail_tmp);
+	KeShikPinPos_Set.push_back(KeShi02_Tail_tmp);
+	return true;
+}
+
+bool HTONDI::OnVisiualKeshiPinClicked()
+{
+	m_Controls.textBrowser_Action->append("Action: KeshiPin Visualization.");
+	auto tmp_Keshi01 = GetDataStorage()->GetNamedNode("KeshiPin01");
+	auto tmp_Keshi02 = GetDataStorage()->GetNamedNode("KeshiPin02");
+
+	auto tmp_Keshi01_points = GetDataStorage()->GetNamedNode("KeshiPin01LandMarkPointSet");
+	auto tmp_Keshi02_points = GetDataStorage()->GetNamedNode("KeshiPin02LandMarkPointSet");
+
+	// 切换下肢力线节点的可见性
+	bool currentVisibility = tmp_Keshi01->IsVisible(nullptr, "visible", true);
+	tmp_Keshi01->SetVisibility(!currentVisibility);
+	tmp_Keshi01_points->SetVisibility(!currentVisibility);
+	tmp_Keshi02->SetVisibility(!currentVisibility);
+	tmp_Keshi02_points->SetVisibility(!currentVisibility);
+
+	GetDataStorage()->Modified();
+	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
+
+	return true;
+}

@@ -185,6 +185,9 @@ void HTONDI::UpdateHTODrill()
 
 	GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Current_vtk);
 	GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->Modified();
+
+	// 然后记录当前的末端点和安装点的位置
+	
 }
 
 void HTONDI::UpdateHTODrill02()
@@ -207,6 +210,7 @@ void HTONDI::UpdateHTODrill02()
 	if (drillIndex == -1 || tibiaIndex == -1)
 	{
 		m_Controls.textBrowser_Action->append("There is no 'DrillRF' or 'TibiaRF' in the toolStorage!");
+		//m_HTODrillUpdateTimer->stop();
 		return;
 	}
 
@@ -239,10 +243,215 @@ void HTONDI::UpdateHTODrill02()
 	memcpy_s(m_T_ImageToDrill, sizeof(double) * 16, T_ImageToDrill->GetData(), sizeof(double) * 16);
 
 	GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_ImageToDrill);
+	GetDataStorage()->GetNamedNode("Drill")->GetData()->GetGeometry()->Modified();
+
+	GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_ImageToDrill);
 	GetDataStorage()->GetNamedNode("DrillLandMarkPointSet")->GetData()->GetGeometry()->Modified();
 
 	GetDataStorage()->GetNamedNode("LinkPin")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_ImageToDrill);
+	GetDataStorage()->GetNamedNode("LinkPin")->GetData()->GetGeometry()->Modified();
+
+	GetDataStorage()->GetNamedNode("LinkPinLandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_ImageToDrill);
 	GetDataStorage()->GetNamedNode("LinkPinLandMarkPointSet")->GetData()->GetGeometry()->Modified();
+
+	auto tmpKeShiPin = GetDataStorage()->GetNamedNode("Drill");
+	auto tmpKeShiPin_Points = GetDataStorage()->GetNamedNode("DrillLandMarkPointSet");
+
+	auto tmpLinkPin = GetDataStorage()->GetNamedNode("LinkPin");
+	auto tmpLinkPin_Points = GetDataStorage()->GetNamedNode("LinkPinLandMarkPointSet");
+
+	if (Drilltype == 0)
+	{
+		// 同时记录下当前末端位置
+		CurrentDrill_Head = dynamic_cast<mitk::PointSet*>(tmpKeShiPin_Points->GetData())->GetPoint(1);
+		CurrentDrill_Tail = dynamic_cast<mitk::PointSet*>(tmpKeShiPin_Points->GetData())->GetPoint(0);
+
+		// copy
+		Eigen::Vector3d Current_Head, Current_Tail;
+		Current_Head[0] = CurrentDrill_Head[0];
+		Current_Head[1] = CurrentDrill_Head[1];
+		Current_Head[2] = CurrentDrill_Head[2];
+
+		Current_Tail[0] = CurrentDrill_Tail[0];
+		Current_Tail[1] = CurrentDrill_Tail[1];
+		Current_Tail[2] = CurrentDrill_Tail[2];
+
+		// 设置数值
+		m_Controls.label_des_x->setText(QString::number(CurrentDrill_Tail[0]));
+		m_Controls.label_des_y->setText(QString::number(CurrentDrill_Tail[1]));
+		m_Controls.label_des_z->setText(QString::number(CurrentDrill_Tail[2]));
+
+
+		// 设置差值
+		double error_x = Destin_Tail[0] - Current_Tail[0];
+		double error_y = Destin_Tail[1] - Current_Tail[1];
+		double error_z = Destin_Tail[2] - Current_Tail[2];
+
+		// 设置数值差值 区分 正负
+		if (Destin_Tail[0] - CurrentDrill_Tail[0] > 0) {
+			m_Controls.LineEdit_distance_End_x->setText("+" + QString::number(Destin_Tail[0] - CurrentDrill_Tail[0]));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_End_x->setText(QString::number(Destin_Tail[0] - CurrentDrill_Tail[0]));
+		}
+		if (Destin_Tail[1] - CurrentDrill_Tail[1] > 0) {
+			m_Controls.LineEdit_distance_End_x->setText("+" + QString::number(Destin_Tail[1] - CurrentDrill_Tail[1]));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_End_x->setText(QString::number(Destin_Tail[1] - CurrentDrill_Tail[1]));
+		}
+		if (Destin_Tail[2] - CurrentDrill_Tail[2] > 0) {
+			m_Controls.LineEdit_distance_End_x->setText("+" + QString::number(Destin_Tail[2] - CurrentDrill_Tail[2]));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_End_x->setText(QString::number(Destin_Tail[2] - CurrentDrill_Tail[2]));
+		}
+
+		// 计算角度误差
+		Eigen::Vector3d normal_current;
+		normal_current = Current_Tail - Current_Head;
+		normal_current.norm();
+
+		// 得到当前方向量在三个平面的投影夹角分量
+		double angle_current_xoy = 180 * asin(normal_current[2]) / 3.141592654;
+		double angle_current_xoz = 180 * asin(normal_current[1]) / 3.141592654;
+		double angle_current_yoz = 180 * asin(normal_current[0]) / 3.141592654;
+
+		// 得到当前方向量在三个平面的投影夹角分量
+		double angle_set_xoy = 180 * asin(normal_KeShi01[2]) / 3.141592654;
+		double angle_set_xoz = 180 * asin(normal_KeShi01[1]) / 3.141592654;
+		double angle_set_yoz = 180 * asin(normal_KeShi01[0]) / 3.141592654;
+
+		double error_xoy = angle_set_xoy - angle_current_xoy;
+		double error_xoz = angle_set_xoz - angle_current_xoz;
+		double error_yoz = angle_set_yoz - angle_current_yoz;
+
+		if (error_xoy > 0)
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText("+" + QString::number(error_xoy));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText(QString::number(error_xoy));
+		}
+		if (error_xoz > 0)
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText("+" + QString::number(error_xoz));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText(QString::number(error_xoy));
+		}
+		if (error_yoz > 0)
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText("+" + QString::number(error_yoz));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText(QString::number(error_xoy));
+		}
+	}
+	else if (Drilltype == 1)
+	{
+		// 同时记录下当前末端位置
+		CurrentDrill_Head = dynamic_cast<mitk::PointSet*>(tmpLinkPin_Points->GetData())->GetPoint(1);
+		CurrentDrill_Tail = dynamic_cast<mitk::PointSet*>(tmpLinkPin_Points->GetData())->GetPoint(0);
+
+		// copy
+		Eigen::Vector3d Current_Head, Current_Tail;
+		Current_Head = { CurrentDrill_Head[0], CurrentDrill_Head[1], CurrentDrill_Head[2] };
+		Current_Tail = { CurrentDrill_Tail[0], CurrentDrill_Tail[1], CurrentDrill_Tail[2] };
+
+		// 设置数值
+		m_Controls.label_des_x->setText("x:" + QString::number(CurrentDrill_Tail[0]));
+		m_Controls.label_des_y->setText("y:" + QString::number(CurrentDrill_Tail[1]));
+		m_Controls.label_des_z->setText("z:" + QString::number(CurrentDrill_Tail[2]));
+
+
+		// 设置差值
+		double error_x = Destin_Tail[0] - CurrentDrill_Tail[0];
+		double error_y = Destin_Tail[1] - CurrentDrill_Tail[1];
+		double error_z = Destin_Tail[2] - CurrentDrill_Tail[2];
+
+		// 设置数值差值 区分 正负
+		if (error_x > 0) {
+			m_Controls.LineEdit_distance_End_x->setText("+" + QString::number(error_x));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_End_x->setText(QString::number(error_x));
+		}
+		if (error_y > 0) {
+			m_Controls.LineEdit_distance_End_x->setText("+" + QString::number(error_y));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_End_x->setText(QString::number(error_y));
+		}
+		if (error_z > 0) {
+			m_Controls.LineEdit_distance_End_x->setText("+" + QString::number(error_z));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_End_x->setText(QString::number(error_z));
+		}
+
+		// 计算角度误差
+		Eigen::Vector3d normal_current;
+		normal_current = Current_Tail - Current_Head;
+		normal_current.norm();
+
+		// 得到当前方向量在三个平面的投影夹角分量
+		double angle_current_xoy = 180 * asin(normal_current[2]) / 3.141592654;
+		double angle_current_xoz = 180 * asin(normal_current[1]) / 3.141592654;
+		double angle_current_yoz = 180 * asin(normal_current[0]) / 3.141592654;
+
+		// 得到当前方向量在三个平面的投影夹角分量
+		double angle_set_xoy = 180 * asin(normal_KeShi01[2]) / 3.141592654;
+		double angle_set_xoz = 180 * asin(normal_KeShi01[1]) / 3.141592654;
+		double angle_set_yoz = 180 * asin(normal_KeShi01[0]) / 3.141592654;
+
+		double error_xoy = angle_set_xoy - angle_current_xoy;
+		double error_xoz = angle_set_xoz - angle_current_xoz;
+		double error_yoz = angle_set_yoz - angle_current_yoz;
+
+		if (error_xoy > 0)
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText("+" + QString::number(error_xoy));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText(QString::number(error_xoy));
+		}
+		if (error_xoz > 0)
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText("+" + QString::number(error_xoz));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText(QString::number(error_xoy));
+		}
+		if (error_yoz > 0)
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText("+" + QString::number(error_yoz));
+		}
+		else
+		{
+			m_Controls.LineEdit_distance_Angle_xoy->setText(QString::number(error_xoy));
+		}
+	}
+	else
+	{
+		m_Controls.textBrowser_Action->append("There is no 'DrillLandMarkPointSet' or 'LinkPinLandMarkPointSet' in the Storage!");
+		//m_HTODrillUpdateTimer->stop();
+		return;
+	}
+
+
+
 }
 
 void HTONDI::UpdateHTOSaw()
@@ -2091,7 +2300,7 @@ void HTONDI::RealTimeTraverseIntersectionLines(vtkSmartPointer<vtkPolyData> inte
 
 
 // 替换磨钻钻头模型
-bool HTONDI::OnChangeKeShiPin()
+bool HTONDI::OnChangeKeShiPinClicked()
 {
 	auto tmpKeShiPin = GetDataStorage()->GetNamedNode("Drill");
 	auto tmpKeShiPin_Points = GetDataStorage()->GetNamedNode("DrillLandMarkPointSet");
@@ -2111,14 +2320,16 @@ bool HTONDI::OnChangeKeShiPin()
 		tmpLinkPin_Points->SetVisibility(false);
 	}
 
-	// 同时记录下当前末端中点位置
-	//m_Controls.label_set_x->setText("x:" + QString::number());
+	Drilltype = 0;
+
+	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
+
 	return true;
 }
 
 
 // 替换磨钻钻头模型
-bool HTONDI::OnChangeLinkPin()
+bool HTONDI::OnChangeLinkPinClicked()
 {
 	auto tmpKeShiPin = GetDataStorage()->GetNamedNode("Drill");
 	auto tmpKeShiPin_Points = GetDataStorage()->GetNamedNode("DrillLandMarkPointSet");
@@ -2137,9 +2348,78 @@ bool HTONDI::OnChangeLinkPin()
 		tmpLinkPin->SetVisibility(true);
 		tmpLinkPin_Points->SetVisibility(true);
 	}
+	Drilltype = 1;
 
-	// 同时记录下当前末端中点位置
-
+	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 
 	return true;
 }
+
+
+// 设置目标点的位置
+bool HTONDI::OnSetKeShi01Clicked()
+{
+	m_Controls.textBrowser_Action->append("Action: Guide Keshi01 Point.");
+	Destin_Tail[0] = KeShikPinPos_Set[0][0];
+	Destin_Tail[1] = KeShikPinPos_Set[0][1];
+	Destin_Tail[2] = KeShikPinPos_Set[0][2];
+	// 设置数值
+	m_Controls.label_set_x->setText("x: " + QString::number(Destin_Tail[0]));
+	m_Controls.label_set_y->setText("y: " + QString::number(Destin_Tail[1]));
+	m_Controls.label_set_z->setText("z: " + QString::number(Destin_Tail[2]));
+	return true;
+}
+
+bool HTONDI::OnSetKeShi02Clicked()
+{
+	m_Controls.textBrowser_Action->append("Action: Guide Keshi02 Point.");
+	Destin_Tail[0] = KeShikPinPos_Set[1][0];
+	Destin_Tail[1] = KeShikPinPos_Set[1][1];
+	Destin_Tail[2] = KeShikPinPos_Set[1][2];
+	// 设置数值
+	m_Controls.label_set_x->setText("x: " + QString::number(Destin_Tail[0]));
+	m_Controls.label_set_y->setText("y: " + QString::number(Destin_Tail[1]));
+	m_Controls.label_set_z->setText("z: " + QString::number(Destin_Tail[2]));
+	return true;
+}
+
+bool HTONDI::OnSetLink01Clicked()
+{
+	m_Controls.textBrowser_Action->append("Action: Guide Link01 Point.");
+	Destin_Tail[0] = LinkPinPos_Set[0][0];
+	Destin_Tail[1] = LinkPinPos_Set[0][1];
+	Destin_Tail[2] = LinkPinPos_Set[0][2];
+
+	// 设置数值
+	m_Controls.label_set_x->setText("x: " + QString::number(Destin_Tail[0]));
+	m_Controls.label_set_y->setText("y: " + QString::number(Destin_Tail[1]));
+	m_Controls.label_set_z->setText("z: " + QString::number(Destin_Tail[2]));
+	return true;
+}
+
+bool HTONDI::OnSetLink02Clicked()
+{
+	m_Controls.textBrowser_Action->append("Action: Guide Link02 Point.");
+	Destin_Tail[0] = LinkPinPos_Set[1][0];
+	Destin_Tail[1] = LinkPinPos_Set[1][1];
+	Destin_Tail[2] = LinkPinPos_Set[1][2];
+	// 设置数值
+	m_Controls.label_set_x->setText("x: " + QString::number(Destin_Tail[0]));
+	m_Controls.label_set_y->setText("y: " + QString::number(Destin_Tail[1]));
+	m_Controls.label_set_z->setText("z: " + QString::number(Destin_Tail[2]));
+	return true;
+}
+
+bool HTONDI::OnSetLink03Clicked()
+{
+	m_Controls.textBrowser_Action->append("Action: Guide Link03 Point.");
+	Destin_Tail[0] = LinkPinPos_Set[2][0];
+	Destin_Tail[1] = LinkPinPos_Set[2][1];
+	Destin_Tail[2] = LinkPinPos_Set[2][2];
+	// 设置数值
+	m_Controls.label_set_x->setText("x: " + QString::number(Destin_Tail[0]));
+	m_Controls.label_set_y->setText("y: " + QString::number(Destin_Tail[1]));
+	m_Controls.label_set_z->setText("z: " + QString::number(Destin_Tail[2]));
+	return true;
+}
+

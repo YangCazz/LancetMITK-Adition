@@ -99,6 +99,11 @@ public slots:
 	bool OnCutTibetClicked();
 	bool OnResetCutClicked();
 
+	// 克式钉规划
+	bool OnGenerateKeshiPinClicked();
+	bool OnRecordKeshiPinClicked();
+	bool OnVisiualKeshiPinClicked();
+
 	// 下肢力线规划
 	bool OnShowMachineLineClicked(); 
 	bool OnUnshowMachineLineClicked();
@@ -205,8 +210,15 @@ public slots:
 	void UpdateHTOSaw02();
 	void UpdateHTODrill02();
 
-	bool OnChangeKeShiPin();
-	bool OnChangeLinkPin();
+	bool OnChangeKeShiPinClicked();
+	bool OnChangeLinkPinClicked();
+
+	bool OnSetKeShi01Clicked();
+	bool OnSetKeShi02Clicked();
+
+	bool OnSetLink01Clicked();
+	bool OnSetLink02Clicked();
+	bool OnSetLink03Clicked();
 
 	// =================================================================
 	
@@ -603,6 +615,27 @@ protected:
   double m_KeShi_Pos02[3] = { 0.0,0.0,0.0 };
 
   double m_Current_drill_Pos01[3] = { 0.0,0.0,0.0 };
+
+  //
+  std::vector<mitk::Point3D> KeShikPinPos_Set;
+  std::vector<mitk::Point3D> LinkPinPos_Set;
+
+  // 记录当前位置
+
+  // 0-keshi 1-link
+  int Drilltype = -1;
+
+  mitk::Point3D CurrentDrill_Head;
+  mitk::Point3D CurrentDrill_Tail;
+
+
+  double Destin_Tail[3] = { 0.0,0.0,0.0 };
+
+  double angle_set_xoy[2] = { 60.0,-30.0 };
+  double angle_set_xoz[2] = { 10.0,-20.0 };
+  double angle_set_yoz[2] = { 10.0,10.0 };
+
+  Eigen::Vector3d normal_KeShi01, normal_KeShi02;
 
   Ui::HTONDIControls m_Controls;
 };

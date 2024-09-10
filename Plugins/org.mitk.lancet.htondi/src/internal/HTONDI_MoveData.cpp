@@ -246,12 +246,10 @@ void HTONDI::TranslateMinusX()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
-		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
-
-
+		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 	}
 
 }
@@ -285,10 +283,10 @@ void HTONDI::TranslateMinusY()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
-		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 
 
 	}
@@ -322,10 +320,10 @@ void HTONDI::TranslateMinusZ()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
-		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 
 
 	}
@@ -360,10 +358,10 @@ void HTONDI::TranslatePlusX()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
-		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 
 
 	}
@@ -397,10 +395,10 @@ void HTONDI::TranslatePlusY()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
-		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 
 
 	}
@@ -434,10 +432,10 @@ void HTONDI::TranslatePlusZ()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
-		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+		Translate(direction, m_Controls.lineEdit_intuitiveValue->text().toDouble(), GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 	}
 }
 
@@ -483,13 +481,13 @@ void HTONDI::RotatePlusX()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
 		Rotate(GetDataStorage()->GetNamedNode(current)->GetData()->GetGeometry()->GetCenter().GetDataPointer(),
 			direction,
 			angle,
-			GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+			GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 	}
 	
 }
@@ -535,13 +533,13 @@ void HTONDI::RotatePlusY()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
 		Rotate(GetDataStorage()->GetNamedNode(current)->GetData()->GetGeometry()->GetCenter().GetDataPointer(),
 			direction,
 			angle,
-			GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+			GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 	}
 }
 
@@ -586,13 +584,13 @@ void HTONDI::RotatePlusZ()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
 		Rotate(GetDataStorage()->GetNamedNode(current)->GetData()->GetGeometry()->GetCenter().GetDataPointer(),
 			direction,
 			angle,
-			GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+			GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 	}
 }
 
@@ -637,13 +635,13 @@ void HTONDI::RotateMinusX()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
 		Rotate(GetDataStorage()->GetNamedNode(current)->GetData()->GetGeometry()->GetCenter().GetDataPointer(),
 			direction,
 			angle,
-			GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+			GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 	}
 }
 
@@ -690,13 +688,13 @@ void HTONDI::RotateMinusY()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
 		Rotate(GetDataStorage()->GetNamedNode(current)->GetData()->GetGeometry()->GetCenter().GetDataPointer(),
 			direction,
 			angle,
-			GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+			GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 	}
 }
 
@@ -741,13 +739,13 @@ void HTONDI::RotateMinusZ()
 			GetDistancefromTibia();
 		}
 	}
-	if (current == "steelPlate")
+	if (current == "SteelPlate")
 	{
 		// 同时移动表面点
 		Rotate(GetDataStorage()->GetNamedNode(current)->GetData()->GetGeometry()->GetCenter().GetDataPointer(),
 			direction,
 			angle,
-			GetDataStorage()->GetNamedNode("steelPlatePointSet")->GetData());
+			GetDataStorage()->GetNamedNode("SteelPlatePointSet")->GetData());
 	}
 }
 
