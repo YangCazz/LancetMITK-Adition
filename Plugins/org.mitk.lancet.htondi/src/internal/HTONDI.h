@@ -196,6 +196,8 @@ public slots:
 	bool OnStartStateAxialCutClicked();
 	bool OnCheckStateCutClicked();
 
+	bool OnStartAngleCheckClicked();
+
 	bool OnStartSagGuideClicked();
 	bool OnStartSagCutClicked();
 	bool OnStartStateSagCutClicked();
@@ -219,6 +221,8 @@ public slots:
 	bool OnSetLink01Clicked();
 	bool OnSetLink02Clicked();
 	bool OnSetLink03Clicked();
+
+	bool OnFinishCurrentDrillClicked();
 
 	// =================================================================
 	
@@ -435,6 +439,8 @@ protected:
   mitk::Point3D m_steelPosition;
   // 下肢远端初始位置
   mitk::Point3D m_distalTibiaPosition;
+
+  std::vector<Eigen::Vector3d> InsectionLine2Surface(vtkSmartPointer<vtkPolyData> plane, double start[3], double end[3]);
   // ================================================================
 
   // ========================= 术中注册 ==============================
@@ -636,6 +642,16 @@ protected:
   double angle_set_yoz[2] = { 10.0,10.0 };
 
   Eigen::Vector3d normal_KeShi01, normal_KeShi02;
+
+  mitk::PointSet::Pointer KeshiSetpoints = mitk::PointSet::New();
+  double Keshi_depth[2];
+
+  // 开始钻孔，记录钻孔初始点位置
+  mitk::Point3D StartDrillPoint;
+
+  // 记录当前选中drill模型index
+  // 0 1 Keshi, 2 3 4 LinkPin, -1 无
+  int Drill_DepthType = -1;
 
   Ui::HTONDIControls m_Controls;
 };

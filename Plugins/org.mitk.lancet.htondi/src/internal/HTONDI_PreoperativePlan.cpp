@@ -33,6 +33,11 @@ All rights reserved.
 #include <vtkPlaneSource.h>
 #include <vtkCutter.h>
 
+#include <iostream>
+#include <algorithm>
+#include <cmath>
+
+
 /*========================= 术前规划 ==================================
 HTONDI_PreoperativePlan.cpp
 ----------------------------------------------------------------
@@ -1962,23 +1967,233 @@ bool HTONDI::OnGenerateKeshiPinClicked()
 	mitk::Point3D Keshi02_tail_destin = mitkPointSet1->GetPoint(3);
 	mitk::Point3D Keshi02_head_destin = mitkPointSet1->GetPoint(0);
 
+	cout << "test 01" << endl;
+	// 计算移动位置
+	// 计算平移
+	Eigen::Vector3d Trans_keshi01 = { Keshi01_tail_destin[0], Keshi01_tail_destin[1], Keshi01_tail_destin[2] };
+	Eigen::Vector3d Trans_keshi02 = { Keshi02_tail_destin[0], Keshi02_tail_destin[1], Keshi02_tail_destin[2] };
+
+	// 计算旋转
+	// 初始
+	auto Keshi01_tail = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("KeshiPin01LandMarkPointSet")->GetData())->GetPoint(0);
+	auto Keshi01_head = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("KeshiPin01LandMarkPointSet")->GetData())->GetPoint(1);
+	Eigen::Vector3d n_k1 = { -Keshi01_head[0],-Keshi01_head[1],-Keshi01_head[2] };
+	n_k1.normalize();
+
+	auto Keshi02_tail = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("KeshiPin02LandMarkPointSet")->GetData())->GetPoint(0);
+	auto Keshi02_head = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("KeshiPin02LandMarkPointSet")->GetData())->GetPoint(1);
+	Eigen::Vector3d n_k2 = { -Keshi02_head[0],-Keshi02_head[1],-Keshi02_head[2] };
+	n_k2.normalize();
+
+	// 目标
+	Eigen::Vector3d n_k1_target, n_k2_target;
+	n_k1_target[0] = Keshi01_tail_destin[0] - Keshi01_head_destin[0];
+	n_k1_target[1] = Keshi01_tail_destin[1] - Keshi01_head_destin[1];
+	n_k1_target[2] = Keshi01_tail_destin[2] - Keshi01_head_destin[2];
+
+	n_k2_target[0] = Keshi02_tail_destin[0] - Keshi02_head_destin[0];
+	n_k2_target[1] = Keshi02_tail_destin[1] - Keshi02_head_destin[1];
+	n_k2_target[2] = Keshi02_tail_destin[2] - Keshi02_head_destin[2];
+
+	n_k1_target.normalize();
+	n_k2_target.normalize();
+
+	// 旋转
+	Eigen::Vector3d axis_k1 = n_k1.cross(n_k1_target);
+	if (axis_k1.norm() != 0) {
+		axis_k1.normalize();
+	}
+	//double angle_k1 = 180 * std::acos(n_k1.dot(n_k1_target)) / 3.141592654;
+	double angle_k1 = std::acos(n_k1.dot(n_k1_target));
+	// 取出旋转矩阵
+	Eigen::AngleAxisd rotation01(angle_k1, axis_k1);
+	Eigen::Matrix3d T_Rotation_k1 = rotation01.toRotationMatrix();
+
+	// 打印 T_Rotation_k1 矩阵
+	std::cout << "T_Rotation_k1 matrix: " << std::endl;
+	std::cout << T_Rotation_k1 << std::endl;
+
+	Eigen::Vector3d axis_k2 = n_k2.cross(n_k2_target);
+	if (axis_k2.norm() != 0) {
+		axis_k2.normalize();
+	}
+	double angle_k2 = std::acos(n_k2.dot(n_k2_target));
+	// 取出旋转矩阵
+	Eigen::AngleAxisd rotation02(angle_k2, axis_k2);
+	Eigen::Matrix3d T_Rotation_k2 = rotation02.toRotationMatrix();
+
+
+	// 最后，计算克式钉的偏移量
+	// H = r/cosa
+	// 这个偏移量需要同时应用给两个克式钉的钻孔点和克式钉模型, 数据来自硬件
+	double r = 2.0;
+
+	// 计算偏移量
+	// 避免除以 0 的错误
+	double angle_k1_offset = 180 * asin(n_k1[2]) / 3.141592654;
+	double offset_k1 = r / cos(angle_k1_offset);
+	double angle_k2_offset = 180 * asin(n_k2[2]) / 3.141592654;
+	double offset_k2 = r / cos(angle_k2_offset);
+
+	Trans_keshi01 = { Keshi01_tail_destin[0], Keshi01_tail_destin[1], Keshi01_tail_destin[2] - offset_k1 };
+	Trans_keshi02 = { Keshi02_tail_destin[0], Keshi02_tail_destin[1], Keshi02_tail_destin[2] - offset_k2 };
+
+
+	// 将克式钉模型移动要目标位置上来
+	Eigen::Matrix4Xd T_Keshi01 = Eigen::Matrix4d::Identity();
+	T_Keshi01.block<3, 3>(0, 0) = T_Rotation_k1;
+	T_Keshi01.col(3).head(3) = Trans_keshi01.head(3);
+	T_Keshi01.row(3) << 0, 0, 0, 1;
+
+	vtkNew<vtkMatrix4x4> T_Keshi01_vtk;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < T_Keshi01.cols(); j++) {
+			T_Keshi01_vtk->SetElement(i, j, T_Keshi01(i, j));
+		}
+	}
+
+	Eigen::Matrix4Xd T_Keshi02 = Eigen::Matrix4d::Identity();
+	T_Keshi02.block<3, 3>(0, 0) = T_Rotation_k2;
+	T_Keshi02.col(3).head(3) = Trans_keshi02.head(3);
+	T_Keshi02.row(3) << 0, 0, 0, 1;
+
+	vtkNew<vtkMatrix4x4> T_Keshi02_vtk;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < T_Keshi02.cols(); j++) {
+			T_Keshi02_vtk->SetElement(i, j, T_Keshi02(i, j));
+		}
+	}
+
+	// 更新截骨点数据
 	auto Keshi01_raw = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("KeshiPin01LandMarkPointSet")->GetData());
 	auto Keshi02_raw = dynamic_cast<mitk::PointSet*>(GetDataStorage()->GetNamedNode("KeshiPin02LandMarkPointSet")->GetData());
 
-	auto Keshi01_tail_raw = Keshi01_raw->GetPoint(0);
-	auto Keshi01_head_raw = Keshi01_raw->GetPoint(1);
+	auto Keshi01_tail_raw_tmp = Keshi01_raw->GetPoint(0);
+	auto Keshi01_head_raw_tmp = Keshi01_raw->GetPoint(1);
 
-	auto Keshi02_tail_raw = Keshi02_raw->GetPoint(0);
-	auto Keshi02_head_raw = Keshi02_raw->GetPoint(1);
+	auto Keshi02_tail_raw_tmp = Keshi02_raw->GetPoint(0);
+	auto Keshi02_head_raw_tmp = Keshi02_raw->GetPoint(1);
 
-	// 将
+	cout << "test 02" << endl;
+	// 考虑偏移量
+	double Keshi01_tail_raw[3], Keshi01_head_raw[3], Keshi02_tail_raw[3], Keshi02_head_raw[3];
+	Keshi01_tail_raw[0] = Keshi01_tail_destin[0];
+	Keshi01_tail_raw[1] = Keshi01_tail_destin[1];
+	Keshi01_tail_raw[2] = Keshi01_tail_destin[2] - offset_k1;
 
+	Keshi01_head_raw[0] = Keshi01_head_destin[0];
+	Keshi01_head_raw[1] = Keshi01_head_destin[1];
+	Keshi01_head_raw[2] = Keshi01_head_destin[2] - offset_k1;
+
+	Keshi02_tail_raw[0] = Keshi02_tail_destin[0];
+	Keshi02_tail_raw[1] = Keshi02_tail_destin[1];
+	Keshi02_tail_raw[2] = Keshi02_tail_destin[2] - offset_k2;
+
+	Keshi02_head_raw[0] = Keshi02_head_destin[0];
+	Keshi02_head_raw[1] = Keshi02_head_destin[1];
+	Keshi02_head_raw[2] = Keshi02_head_destin[2] - offset_k2;
+
+	cout << "test 03" << endl;
+	// 计算交点数据
+	auto surface = dynamic_cast<mitk::Surface*>(GetDataStorage()->GetNamedNode("tibiaSurface")->GetData());
+	auto surface_polydata = surface->GetVtkPolyData();
+
+	cout << "test 04" << endl;
+	std::vector<Eigen::Vector3d> Keshi01_insection, Keshi02_insection;
+	Keshi01_insection = InsectionLine2Surface(surface_polydata, Keshi01_tail_raw, Keshi01_head_raw);
+	Keshi02_insection = InsectionLine2Surface(surface_polydata, Keshi02_tail_raw, Keshi02_head_raw);
+
+	// 分别取得其中x最小的两个点的坐标，然后进行可视化
+	double min_tmp1 = 1000;
+	mitk::Point3D Keshi01_des, Keshi02_des;
+	for (int i = 0; i < Keshi01_insection.size(); i++)
+	{
+		if (Keshi01_insection[i][0] <= min_tmp1)
+		{
+			Keshi01_des[0] = Keshi01_insection[i][0];
+			Keshi01_des[1] = Keshi01_insection[i][1];
+			Keshi01_des[2] = Keshi01_insection[i][2];
+		}
+	}
+
+	double min_tmp2 = 1000;
+	for (int i = 0; i < Keshi02_insection.size(); i++)
+	{
+		if (Keshi02_insection[i][0] <= min_tmp2)
+		{
+			Keshi02_des[0] = Keshi02_insection[i][0];
+			Keshi02_des[1] = Keshi02_insection[i][1];
+			Keshi02_des[2] = Keshi02_insection[i][2];
+		}
+	}
+
+	mitk::PointSet::Pointer tmp_keshi01 = mitk::PointSet::New();
+	tmp_keshi01->InsertPoint(Keshi01_des);
+	mitk::PointSet::Pointer tmp_keshi02 = mitk::PointSet::New();
+	tmp_keshi02->InsertPoint(Keshi02_des);
+
+	// 然后记录到全局变量中
+	KeshiSetpoints->InsertPoint(0, Keshi01_des);
+	KeshiSetpoints->InsertPoint(1, Keshi02_des);
+
+	//否则创建新的平面
+	auto tmpNodes01 = GetDataStorage()->GetNamedNode("KeShi_Destination_01");
+	if (tmpNodes01) {
+		GetDataStorage()->Remove(tmpNodes01);
+	}
+	mitk::DataNode::Pointer pointSetInPlaneCutPlane01 = mitk::DataNode::New();
+	pointSetInPlaneCutPlane01->SetName("KeShi_Destination_01");
+	pointSetInPlaneCutPlane01->SetColor(0.0, 0.0, 1.0);
+	pointSetInPlaneCutPlane01->SetData(tmp_keshi01);
+	pointSetInPlaneCutPlane01->SetFloatProperty("pointsize", 3.0);
+	GetDataStorage()->Add(pointSetInPlaneCutPlane01);
+
+	auto tmpNodes02 = GetDataStorage()->GetNamedNode("KeShi_Destination_02");
+	if (tmpNodes02) {
+		GetDataStorage()->Remove(tmpNodes02);
+	}
+	mitk::DataNode::Pointer pointSetInPlaneCutPlane02 = mitk::DataNode::New();
+	pointSetInPlaneCutPlane02->SetName("KeShi_Destination_02");
+	pointSetInPlaneCutPlane02->SetColor(0.0, 0.0, 1.0);
+	pointSetInPlaneCutPlane02->SetData(tmp_keshi02);
+	pointSetInPlaneCutPlane02->SetFloatProperty("pointsize", 3.0);
+	GetDataStorage()->Add(pointSetInPlaneCutPlane02);
+
+
+
+
+
+	// 可视化
+	auto Keshi01_surface = GetDataStorage()->GetNamedNode("KeshiPin01");
+	auto Keshi02_surface = GetDataStorage()->GetNamedNode("KeshiPin02");
+	auto Keshi01_nodes = GetDataStorage()->GetNamedNode("KeshiPin01LandMarkPointSet");
+	auto Keshi02_nodes = GetDataStorage()->GetNamedNode("KeshiPin02LandMarkPointSet");
+
+	Keshi01_surface->SetVisibility(true);
+	Keshi02_surface->SetVisibility(true);
+	Keshi01_nodes->SetVisibility(true);
+	Keshi02_nodes->SetVisibility(true);
+
+	Keshi01_surface->SetOpacity(0.3);
+	Keshi02_surface->SetOpacity(0.3);
+	
+	// 将其应用到初始位置上
+	GetDataStorage()->GetNamedNode("KeshiPin01")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Keshi01_vtk);
+	GetDataStorage()->GetNamedNode("KeshiPin01")->GetData()->GetGeometry()->Modified();
+	GetDataStorage()->GetNamedNode("KeshiPin01LandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Keshi01_vtk);
+	GetDataStorage()->GetNamedNode("KeshiPin01LandMarkPointSet")->GetData()->GetGeometry()->Modified();
+
+	GetDataStorage()->GetNamedNode("KeshiPin02")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Keshi02_vtk);
+	GetDataStorage()->GetNamedNode("KeshiPin02")->GetData()->GetGeometry()->Modified();
+	GetDataStorage()->GetNamedNode("KeshiPin02LandMarkPointSet")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(T_Keshi02_vtk);
+	GetDataStorage()->GetNamedNode("KeshiPin02LandMarkPointSet")->GetData()->GetGeometry()->Modified();
 
 	return true;
 }
 
 bool HTONDI::OnRecordKeshiPinClicked()
 {
+	/* 记录克式定预设点 */
 	m_Controls.textBrowser_Action->append("Action: Record KeshiPin Pos.");
 
 	auto KeShi01_Tail_tmp = mitkPointSet1->GetPoint(2);
@@ -2006,8 +2221,23 @@ bool HTONDI::OnRecordKeshiPinClicked()
 	m_Controls.textBrowser_Action->append("KeshiPin01: (" + QString::number(normal_KeShi01[0]) + ", " + QString::number(normal_KeShi01[1]) + ", " + QString::number(normal_KeShi01[2]) + ")");
 	m_Controls.textBrowser_Action->append("KeshiPin02: (" + QString::number(normal_KeShi02[0]) + ", " + QString::number(normal_KeShi02[1]) + ", " + QString::number(normal_KeShi02[2]) + ")");
 
-	KeShikPinPos_Set.push_back(KeShi01_Tail_tmp);
-	KeShikPinPos_Set.push_back(KeShi02_Tail_tmp);
+	// 取出预设点并保存
+	auto KeShi01_setpoint_tmp = GetDataStorage()->GetNamedNode("KeShi_Destination_01");
+	auto KeShi02_setpoint_tmp = GetDataStorage()->GetNamedNode("KeShi_Destination_02");
+
+	KeShikPinPos_Set.push_back(KeshiSetpoints->GetPoint(0));
+	KeShikPinPos_Set.push_back(KeshiSetpoints->GetPoint(1));
+
+	// 然后，需要保存克式钉的钻孔深度
+	Keshi_depth[0] = sqrt(pow(KeShi01_Tail_tmp[0] - KeshiSetpoints->GetPoint(0)[0], 2) +
+					pow(KeShi01_Tail_tmp[1] - KeshiSetpoints->GetPoint(0)[1], 2) +
+					pow(KeShi01_Tail_tmp[2] - KeshiSetpoints->GetPoint(0)[2], 2));
+	Keshi_depth[1] = sqrt(pow(KeShi02_Tail_tmp[0] - KeshiSetpoints->GetPoint(1)[0], 2) +
+					pow(KeShi02_Tail_tmp[1] - KeshiSetpoints->GetPoint(1)[1], 2) +
+					pow(KeShi02_Tail_tmp[2] - KeshiSetpoints->GetPoint(1)[2], 2));
+
+	m_Controls.textBrowser_Action->append("depth KeshiPin01: " + QString::number(Keshi_depth[0]) + "mm");
+	m_Controls.textBrowser_Action->append("depth KeshiPin02: " + QString::number(Keshi_depth[1]) + "mm");
 	return true;
 }
 

@@ -2103,6 +2103,7 @@ void HTONDI::UpdateHTOProbe()
 	// 然后，创建旋转矩阵
 	// 计算旋转矩阵 n_init -> n_current ，无法直接使用矩阵计算，这里使用角度计算方法
 	Eigen::Vector3d axis = n_init.cross(n_current);
+	axis.normalize();
 	double angle = std::acos(n_init.dot(n_current));
 	// 取出旋转矩阵
 	Eigen::AngleAxisd rotation(angle, axis);

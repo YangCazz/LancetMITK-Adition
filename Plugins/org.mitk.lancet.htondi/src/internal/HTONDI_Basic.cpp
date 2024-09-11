@@ -22,6 +22,10 @@ All rights reserved.
 #include <mitkAffineTransform3D.h>
 #include <mitkMatrixConvert.h>
 #include <vtkTransformFilter.h>
+#include <vtkIntersectionPolyDataFilter.h>
+#include <vtkLineSource.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkOBBTree.h>
 
 
 // vtk
@@ -806,4 +810,41 @@ double HTONDI::DistancePointToLine(double pointA[3], double pointB[3], double po
 	double distance = sqrt(vectorAP[0] * vectorAP[0] + vectorAP[1] * vectorAP[1] + vectorAP[2] * vectorAP[2]);
 
 	return distance;
+}
+
+
+// 计算空间直线与图像表面的交点
+std::vector<Eigen::Vector3d> HTONDI::InsectionLine2Surface(vtkSmartPointer<vtkPolyData> plane, double start[3], double end[3])
+{
+	std::vector<Eigen::Vector3d> nodes;
+
+	// 创建一条直线
+	vtkNew<vtkLineSource> lineSource;
+	lineSource->SetPoint1(start);
+	lineSource->SetPoint2(end);
+	lineSource->Update();
+
+	// 获取直线的PolyData
+	vtkSmartPointer<vtkPolyData> polyData = lineSource->GetOutput();
+
+	// 创建OBBTree并构建定位器
+	vtkNew<vtkOBBTree> tree;
+	tree->SetDataSet(plane);
+	tree->BuildLocator();
+
+	// 计算直线与图像表面的交点
+	vtkNew<vtkPoints> intersectionPoints;
+	tree->IntersectWithLine(start, end, intersectionPoints, NULL);
+	vtkIdType numPoints = intersectionPoints->GetNumberOfPoints();
+
+	for (vtkIdType i = 0; i < numPoints; ++i)
+	{
+		double p[3];
+		intersectionPoints->GetPoint(i, p);
+		Eigen::Vector3d node(p[0], p[1], p[2]);
+		cout << p[0] << " " << p[1] << " " << p[2] << endl;
+		nodes.push_back(node);
+	}
+
+	return nodes;
 }

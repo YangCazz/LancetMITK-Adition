@@ -157,6 +157,7 @@ void HTONDI::UpdateHTODrill()
 	// 然后，创建旋转矩阵
 	// 计算旋转矩阵 n_init -> n_current ，无法直接使用矩阵计算，这里使用角度计算方法
 	Eigen::Vector3d axis = n_init.cross(n_current);
+	axis.normalize();
 	double angle = std::acos(n_init.dot(n_current));
 	// 取出旋转矩阵
 	Eigen::AngleAxisd rotation(angle, axis);
@@ -262,6 +263,7 @@ void HTONDI::UpdateHTODrill02()
 
 	if (Drilltype == 0)
 	{
+		// 进行克式钉导航
 		// 同时记录下当前末端位置
 		CurrentDrill_Head = dynamic_cast<mitk::PointSet*>(tmpKeShiPin_Points->GetData())->GetPoint(1);
 		CurrentDrill_Tail = dynamic_cast<mitk::PointSet*>(tmpKeShiPin_Points->GetData())->GetPoint(0);
@@ -313,7 +315,7 @@ void HTONDI::UpdateHTODrill02()
 		// 计算角度误差
 		Eigen::Vector3d normal_current;
 		normal_current = Current_Tail - Current_Head;
-		normal_current.norm();
+		normal_current.normalize();
 
 		// 得到当前方向量在三个平面的投影夹角分量
 		double angle_current_xoy = 180 * asin(normal_current[2]) / 3.141592654;
@@ -402,7 +404,7 @@ void HTONDI::UpdateHTODrill02()
 		// 计算角度误差
 		Eigen::Vector3d normal_current;
 		normal_current = Current_Tail - Current_Head;
-		normal_current.norm();
+		normal_current.normalize();
 
 		// 得到当前方向量在三个平面的投影夹角分量
 		double angle_current_xoy = 180 * asin(normal_current[2]) / 3.141592654;
@@ -445,13 +447,40 @@ void HTONDI::UpdateHTODrill02()
 	}
 	else
 	{
-		m_Controls.textBrowser_Action->append("There is no 'DrillLandMarkPointSet' or 'LinkPinLandMarkPointSet' in the Storage!");
-		//m_HTODrillUpdateTimer->stop();
+		m_Controls.textBrowser_Action->append("Drill tool type not selected");
 		return;
 	}
+	if (m_DrillPower == true)
+	{
+		// 显示电源
+		m_Controls.label_power->setText("POWER ON");
+		// 计算当前截骨深度
+		if (CurrentDrill_Tail[1] >= StartDrillPoint[1])
+		{
+			double CurrentDepth = sqrt(
+				pow(StartDrillPoint[0] - CurrentDrill_Tail[0], 2) +
+				pow(StartDrillPoint[1] - CurrentDrill_Tail[1], 2) +
+				pow(StartDrillPoint[2] - CurrentDrill_Tail[2], 2)
+			);
+			if (Drill_DepthType == 0)
+			{
+				double distance2end = Keshi_depth[0] - CurrentDepth;
+				m_Controls.label_currentDepth->setText(QString::number(CurrentDepth) + " mm");
+				m_Controls.label_currentDistance->setText(QString::number(distance2end) + " mm");
+			}
+			else if (Drill_DepthType == 1)
+			{
+				double distance2end = Keshi_depth[1] - CurrentDepth;
+				m_Controls.label_currentDepth->setText(QString::number(CurrentDepth) + " mm");
+				m_Controls.label_currentDistance->setText(QString::number(distance2end) + " mm");
+			}
+		}
+	}
+	else if(m_DrillPower == false)
+	{
+		m_Controls.label_power->setText("POWER OFF");
 
-
-
+	}
 }
 
 void HTONDI::UpdateHTOSaw()
@@ -624,20 +653,6 @@ void HTONDI::UpdateHTOSaw()
 		GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->Modified();
 	}
 
-	//// 更新摆锯位置
-	//GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
-	//GetDataStorage()->GetNamedNode("Saw")->GetData()->GetGeometry()->Modified();
-
-	//// 更新实时截骨面
-	//GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
-	//GetDataStorage()->GetNamedNode("CurrentCutPlane01")->GetData()->GetGeometry()->Modified();
-
-	//// 更新实时截骨面前端点
-	//GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->SetIndexToWorldTransformByVtkMatrix(tmpTrans->GetMatrix());
-	//GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->Modified();
-
-
-
 	// 2. 首先确保克式钉确定的截骨平面是正确的
 	if (m_RealtimeAngleCheck) {
 		cout << "test Saw 10" << endl;
@@ -765,8 +780,6 @@ void HTONDI::UpdateHTOSaw()
 		// TestCut
 	}
 	
-	
-
 	cout << "refresh" << endl;
 }
 
@@ -780,7 +793,6 @@ void  HTONDI::UpdateHTOSaw02()
 	*/
 
 	// 1. 进行影像投影计算
-
 	cout << "test Saw 01" << endl;
 	if (GetDataStorage()->GetNamedNode("Saw") == nullptr)
 	{
@@ -879,18 +891,8 @@ void  HTONDI::UpdateHTOSaw02()
 		{
 			angleInDegrees = 180.0 - angleInDegrees;
 		}
-
-		// 输出夹角到实际的位置
-		m_Controls.textBrowser_AxialCut->append("Real time Angle Miss: " + QString::number(angleInDegrees));
-
-		if (angleInDegrees < 0.5)
-		{
-			m_Controls.textBrowser_AxialCut03->setText("Current Angle Missing < 0.5 is acceptable.");
-		}
-		else
-		{
-			m_Controls.textBrowser_AxialCut03->setText("Current Angle Missing > 0.5 !!");
-		}
+		// 刷新夹角信息
+		m_Controls.label_CutPlaneAngle->setText(QString::number(angleInDegrees));
 	}
 
 
@@ -1011,9 +1013,6 @@ bool HTONDI::OnStartAxialGuideClicked()
 		m_Controls.textBrowser_Action->append("Cut plane or Saw model Not Found!");
 		return false;
 	}
-
-	// 先运行一次，更新到目标位置上来
-	//UpdateHTOSaw();
 	
 	// 对Saw生成实时截骨平面
 	if (m_HTOSawUpdateTimer == nullptr)
@@ -1022,16 +1021,9 @@ bool HTONDI::OnStartAxialGuideClicked()
 	}
 	m_Controls.textBrowser_Action->append("Generate Real time Cut plane");
 	
-	// 先终止探针的识别
-	//m_HTOPrboeUpdateTimer->stop();
-	//cout << "stop probe visulization" << endl;
-
-
 	connect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw02()));
 	m_HTOSawUpdateTimer->start(100);
-	
-	// 启动导航的同时，计算误差角度
-	m_RealtimeAngleCheck = true;
+
 
 	return true;
 }
@@ -2083,11 +2075,12 @@ bool HTONDI::OnStartDrillHoleClicked()
 {
 	/* 启动钻孔
 	1. 改变磨钻器械状态
-	2. 计算实时 钻孔深度
-	3. 进行钻孔保护
+	2. 记录初始钻头深度
 	*/
 
-	m_Controls.textBrowser_Action->append("Action: Check Drill Node.");
+	m_Controls.textBrowser_Action->append("Action: Start Drill Node.");
+	// 点击后，记录当前末端点代表的位置
+	StartDrillPoint = CurrentDrill_Tail;
 
 	return true;
 }
@@ -2302,6 +2295,9 @@ void HTONDI::RealTimeTraverseIntersectionLines(vtkSmartPointer<vtkPolyData> inte
 // 替换磨钻钻头模型
 bool HTONDI::OnChangeKeShiPinClicked()
 {
+	m_Controls.textBrowser_Action->append("Action: Change KeShi model.");
+	m_Controls.textBrowser_DepthGuide->append("Action: Change KeShi model.");
+
 	auto tmpKeShiPin = GetDataStorage()->GetNamedNode("Drill");
 	auto tmpKeShiPin_Points = GetDataStorage()->GetNamedNode("DrillLandMarkPointSet");
 
@@ -2331,6 +2327,9 @@ bool HTONDI::OnChangeKeShiPinClicked()
 // 替换磨钻钻头模型
 bool HTONDI::OnChangeLinkPinClicked()
 {
+	m_Controls.textBrowser_Action->append("Action: Change LinkPin model.");
+	m_Controls.textBrowser_DepthGuide->append("Action: Change LinkPin model.");
+
 	auto tmpKeShiPin = GetDataStorage()->GetNamedNode("Drill");
 	auto tmpKeShiPin_Points = GetDataStorage()->GetNamedNode("DrillLandMarkPointSet");
 
@@ -2360,6 +2359,7 @@ bool HTONDI::OnChangeLinkPinClicked()
 bool HTONDI::OnSetKeShi01Clicked()
 {
 	m_Controls.textBrowser_Action->append("Action: Guide Keshi01 Point.");
+	m_Controls.textBrowser_DepthGuide->append("Action: Guide Keshi01 Point.");
 	Destin_Tail[0] = KeShikPinPos_Set[0][0];
 	Destin_Tail[1] = KeShikPinPos_Set[0][1];
 	Destin_Tail[2] = KeShikPinPos_Set[0][2];
@@ -2367,12 +2367,18 @@ bool HTONDI::OnSetKeShi01Clicked()
 	m_Controls.label_set_x->setText("x: " + QString::number(Destin_Tail[0]));
 	m_Controls.label_set_y->setText("y: " + QString::number(Destin_Tail[1]));
 	m_Controls.label_set_z->setText("z: " + QString::number(Destin_Tail[2]));
+	// 设置最大深度
+	m_Controls.label_depth->setText(QString::number(Keshi_depth[0]) + " mm");
+	// 设置当前导航物体，方便进行深度保护
+	Drill_DepthType = 0;
+
 	return true;
 }
 
 bool HTONDI::OnSetKeShi02Clicked()
 {
 	m_Controls.textBrowser_Action->append("Action: Guide Keshi02 Point.");
+	m_Controls.textBrowser_DepthGuide->append("Action: Guide Keshi02 Point.");
 	Destin_Tail[0] = KeShikPinPos_Set[1][0];
 	Destin_Tail[1] = KeShikPinPos_Set[1][1];
 	Destin_Tail[2] = KeShikPinPos_Set[1][2];
@@ -2380,12 +2386,18 @@ bool HTONDI::OnSetKeShi02Clicked()
 	m_Controls.label_set_x->setText("x: " + QString::number(Destin_Tail[0]));
 	m_Controls.label_set_y->setText("y: " + QString::number(Destin_Tail[1]));
 	m_Controls.label_set_z->setText("z: " + QString::number(Destin_Tail[2]));
+	// 设置最大深度
+	m_Controls.label_depth->setText(QString::number(Keshi_depth[1]) + " mm");
+	// 设置当前导航物体，方便进行深度保护
+	Drill_DepthType = 1;
 	return true;
 }
 
 bool HTONDI::OnSetLink01Clicked()
 {
 	m_Controls.textBrowser_Action->append("Action: Guide Link01 Point.");
+	m_Controls.textBrowser_DepthGuide->append("Action: Guide Link01 Point.");
+
 	Destin_Tail[0] = LinkPinPos_Set[0][0];
 	Destin_Tail[1] = LinkPinPos_Set[0][1];
 	Destin_Tail[2] = LinkPinPos_Set[0][2];
@@ -2394,12 +2406,18 @@ bool HTONDI::OnSetLink01Clicked()
 	m_Controls.label_set_x->setText("x: " + QString::number(Destin_Tail[0]));
 	m_Controls.label_set_y->setText("y: " + QString::number(Destin_Tail[1]));
 	m_Controls.label_set_z->setText("z: " + QString::number(Destin_Tail[2]));
+	// 设置最大深度
+	m_Controls.label_depth->setText("- mm");
+	// 设置当前导航物体，方便进行深度保护
+	Drill_DepthType = 2;
 	return true;
 }
 
 bool HTONDI::OnSetLink02Clicked()
 {
 	m_Controls.textBrowser_Action->append("Action: Guide Link02 Point.");
+	m_Controls.textBrowser_DepthGuide->append("Action: Guide Link02 Point.");
+
 	Destin_Tail[0] = LinkPinPos_Set[1][0];
 	Destin_Tail[1] = LinkPinPos_Set[1][1];
 	Destin_Tail[2] = LinkPinPos_Set[1][2];
@@ -2407,12 +2425,18 @@ bool HTONDI::OnSetLink02Clicked()
 	m_Controls.label_set_x->setText("x: " + QString::number(Destin_Tail[0]));
 	m_Controls.label_set_y->setText("y: " + QString::number(Destin_Tail[1]));
 	m_Controls.label_set_z->setText("z: " + QString::number(Destin_Tail[2]));
+	// 设置最大深度
+	m_Controls.label_depth->setText("- mm");
+	// 设置当前导航物体，方便进行深度保护
+	Drill_DepthType = 3;
 	return true;
 }
 
 bool HTONDI::OnSetLink03Clicked()
 {
 	m_Controls.textBrowser_Action->append("Action: Guide Link03 Point.");
+	m_Controls.textBrowser_DepthGuide->append("Action: Guide Link03 Point.");
+
 	Destin_Tail[0] = LinkPinPos_Set[2][0];
 	Destin_Tail[1] = LinkPinPos_Set[2][1];
 	Destin_Tail[2] = LinkPinPos_Set[2][2];
@@ -2420,6 +2444,54 @@ bool HTONDI::OnSetLink03Clicked()
 	m_Controls.label_set_x->setText("x: " + QString::number(Destin_Tail[0]));
 	m_Controls.label_set_y->setText("y: " + QString::number(Destin_Tail[1]));
 	m_Controls.label_set_z->setText("z: " + QString::number(Destin_Tail[2]));
+	// 设置最大深度
+	m_Controls.label_depth->setText("- mm");
+	// 设置当前导航物体，方便进行深度保护
+	Drill_DepthType = 4;
+	return true;
+}
+
+bool HTONDI::OnFinishCurrentDrillClicked()
+{
+	m_Controls.textBrowser_Action->append("Action: Finish Currnt Drill.");
+	m_Controls.textBrowser_DepthGuide->append("Action: Finish Currnt Drill.");
+
+	// 完成当前磨钻导航目标，更新界面信息
+	if (Drill_DepthType == 0)
+	{
+		m_Controls.label_keshi01->setText("1/1");
+	}
+	else if (Drill_DepthType == 1)
+	{
+		m_Controls.label_keshi02->setText("1/1");
+	}
+	else if (Drill_DepthType == 2)
+	{
+		m_Controls.label_link01->setText("1/1");
+	}
+	else if (Drill_DepthType == 3)
+	{
+		m_Controls.label_link02->setText("1/1");
+	}
+	else if (Drill_DepthType == 4)
+	{
+		m_Controls.label_link03->setText("1/1");
+	}
+	// 归位当前标记位 - 钻头类型 + 导航目标 index
+	Drill_DepthType = -1;
+	Drilltype = -1;
+
+	return true;
+}
+
+bool HTONDI::OnStartAngleCheckClicked()
+{
+	/* 将摆锯放置到克式钉平面上，进行平面验证 */
+	m_Controls.textBrowser_Action->append("Action: Start Angle Check.");
+
+	// 启动导航的同时，计算误差角度
+	m_RealtimeAngleCheck = true;
+
 	return true;
 }
 

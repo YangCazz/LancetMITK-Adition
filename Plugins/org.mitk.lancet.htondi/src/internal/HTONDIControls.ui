@@ -109,63 +109,8 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="currentIndex">
-       <number>6</number>
+       <number>7</number>
       </property>
-      <widget class="QWidget" name="tab_5">
-       <attribute name="title">
-        <string>使用前需知</string>
-       </attribute>
-       <widget class="QPlainTextEdit" name="plainTextEdit">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>10</y>
-          <width>881</width>
-          <height>501</height>
-         </rect>
-        </property>
-        <property name="plainText">
-         <string>此demo用于验证春丽HTO软件流程，当前版本为【3.6】
-在使用demo前请预先加载功能依赖的基本数据，图像表面数据和预先设计好的功能文件在同目录下的文件夹内
-【功能更新LOG】
-	1.删除无效控件和代码
-	2.修正探针、磨钻和摆锯的导航方法，使得它们可以到正确的位置和角度上来
-	3.添加克式钉规划生成方法
-	4.添加克式钉和固定钉替换按钮用于钉子导航
-【术前规划】：
-	【01】特征点标记/特征点数据加载
-	【02】影像股骨头中心拟合：依据表面标记点完成股骨头中心的拟合   
-	【03】截骨面规划：水平截骨 + 截骨面微调 + 上升截骨
-	【04】力线演算：力线显示 + 在胫骨平台占比计算
-	【05】撑开角度规划：截骨两端按合页轴(截骨面前端)旋转撑开
-	【06】钢板规划：
-【硬件准备】：
-	【01】NDI相机连接：加载.IGTToolStorage仓库 + 显示连接状态
-
-【术中注册】：
-	【01】探针注册 + 探针标定
-	【02】股骨/胫骨标记 注册
-	【03】摆锯标定
-	【04】磨钻标定
-	【05】晃腿获得实际股骨头中心
-	【06】股骨/胫骨标记验证
-	【07】股骨粗配准点采集 + 配准计算
-	【08】胫骨粗配准点采集 + 配准计算
-	【09】胫骨精配准点采集 + 配准应用
-
-【术中导航】：===== 在手术设备准备齐全情况下克验证导航效果 ======
-	【01】克式钉磨钻导航 + 磨钻深度计算
-	【02】水平截骨导航   + 截骨深度导航
-	【03】上升截骨导航   + 截骨深度导航
-	【04】撑开角度导航
-	【05】术中力线显示   + 术后力线显示
-	【06】钢板固定导航
-
-【术后评估】：
-	【01】术后力线验证 显示偏移量</string>
-        </property>
-       </widget>
-      </widget>
       <widget class="QWidget" name="tab_6">
        <attribute name="title">
         <string>术前规划01</string>
@@ -470,6 +415,60 @@ p, li { white-space: pre-wrap; }
           </widget>
          </item>
         </layout>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="tab_5">
+       <attribute name="title">
+        <string>使用前需知</string>
+       </attribute>
+       <widget class="QPlainTextEdit" name="plainTextEdit">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>881</width>
+          <height>501</height>
+         </rect>
+        </property>
+        <property name="plainText">
+         <string>此demo用于验证春丽HTO软件流程，当前版本为【3.8】
+在使用demo前请预先加载功能依赖的基本数据，图像表面数据和预先设计好的功能文件在同目录下的文件夹内
+【功能更新LOG】
+	1.修正克式钉规划生成方法
+	2.添加规划钻骨深度计算用于导航显示
+	3.添加断电保护验证
+【术前规划】：
+	【01】特征点标记/特征点数据加载
+	【02】影像股骨头中心拟合：依据表面标记点完成股骨头中心的拟合   
+	【03】截骨面规划：水平截骨 + 截骨面微调 + 上升截骨
+	【04】力线演算：力线显示 + 在胫骨平台占比计算
+	【05】撑开角度规划：截骨两端按合页轴(截骨面前端)旋转撑开
+	【06】钢板规划：
+【硬件准备】：
+	【01】NDI相机连接：加载.IGTToolStorage仓库 + 显示连接状态
+
+【术中注册】：
+	【01】探针注册 + 探针标定
+	【02】股骨/胫骨标记 注册
+	【03】摆锯标定
+	【04】磨钻标定
+	【05】晃腿获得实际股骨头中心
+	【06】股骨/胫骨标记验证
+	【07】股骨粗配准点采集 + 配准计算
+	【08】胫骨粗配准点采集 + 配准计算
+	【09】胫骨精配准点采集 + 配准应用
+
+【术中导航】：===== 在手术设备准备齐全情况下克验证导航效果 ======
+	【01】克式钉磨钻导航 + 磨钻深度计算
+	【02】水平截骨导航   + 截骨深度导航
+	【03】上升截骨导航   + 截骨深度导航
+	【04】撑开角度导航
+	【05】术中力线显示   + 术后力线显示
+	【06】钢板固定导航
+
+【术后评估】：
+	【01】术后力线验证 显示偏移量</string>
+        </property>
        </widget>
       </widget>
       <widget class="QWidget" name="tab_10">
@@ -2210,21 +2209,30 @@ p, li { white-space: pre-wrap; }
           <x>10</x>
           <y>220</y>
           <width>391</width>
-          <height>131</height>
+          <height>121</height>
          </rect>
         </property>
         <property name="title">
          <string>磨钻导航-克式钉【点击01】</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_9">
-         <item row="0" column="1" rowspan="3">
-          <widget class="QTextBrowser" name="textBrowser_DrillState_2">
-           <property name="html">
-            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'SimSun'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;显示磨钻与截骨面夹角&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="pushButton_ChangeLinkPin">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>替换固定钉模型</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>当前钻骨深度:</string>
            </property>
           </widget>
          </item>
@@ -2241,16 +2249,24 @@ p, li { white-space: pre-wrap; }
            </property>
           </widget>
          </item>
-         <item row="1" column="0" rowspan="2">
-          <widget class="QPushButton" name="pushButton_ChangeLinkPin">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>30</height>
-            </size>
-           </property>
+         <item row="0" column="2">
+          <widget class="QLabel" name="label_currentDepth">
            <property name="text">
-            <string>替换固定钉模型</string>
+            <string>0 mm</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>距离最大深度:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLabel" name="label_currentDistance">
+           <property name="text">
+            <string>0 mm</string>
            </property>
           </widget>
          </item>
@@ -2466,19 +2482,19 @@ p, li { white-space: pre-wrap; }
             </size>
            </property>
            <property name="text">
-            <string>开始钻孔</string>
+            <string>开始/停止钻孔</string>
            </property>
           </widget>
          </item>
          <item row="1" column="2">
-          <widget class="QLabel" name="label_20">
+          <widget class="QLabel" name="label_power">
            <property name="text">
-            <string>POWER ON</string>
+            <string>POWER OFF</string>
            </property>
           </widget>
          </item>
          <item row="4" column="0" colspan="3">
-          <widget class="QPushButton" name="pushButton_3">
+          <widget class="QPushButton" name="pushButton_finishCurrent">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -2493,12 +2509,12 @@ p, li { white-space: pre-wrap; }
          <item row="0" column="1">
           <widget class="QLabel" name="label_21">
            <property name="text">
-            <string>钻孔深度:</string>
+            <string>钻孔深度限制:</string>
            </property>
           </widget>
          </item>
          <item row="0" column="2">
-          <widget class="QLabel" name="label_22">
+          <widget class="QLabel" name="label_depth">
            <property name="text">
             <string>0 mm</string>
            </property>
@@ -2511,8 +2527,8 @@ p, li { white-space: pre-wrap; }
          <rect>
           <x>10</x>
           <y>360</y>
-          <width>391</width>
-          <height>161</height>
+          <width>354</width>
+          <height>157</height>
          </rect>
         </property>
         <property name="title">
@@ -2530,8 +2546,8 @@ p, li { white-space: pre-wrap; }
            <property name="title">
             <string>克式钉</string>
            </property>
-           <layout class="QFormLayout" name="formLayout">
-            <item row="1" column="0">
+           <layout class="QGridLayout" name="gridLayout_18">
+            <item row="0" column="0">
              <widget class="QPushButton" name="pushButton_setKeShi01">
               <property name="minimumSize">
                <size>
@@ -2544,7 +2560,14 @@ p, li { white-space: pre-wrap; }
               </property>
              </widget>
             </item>
-            <item row="2" column="0">
+            <item row="0" column="1">
+             <widget class="QLabel" name="label_keshi01">
+              <property name="text">
+               <string>0/1</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
              <widget class="QPushButton" name="pushButton_setKeShi02">
               <property name="minimumSize">
                <size>
@@ -2558,14 +2581,7 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QLabel" name="label_23">
-              <property name="text">
-               <string>0/1</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QLabel" name="label_24">
+             <widget class="QLabel" name="label_keshi02">
               <property name="text">
                <string>0/1</string>
               </property>
@@ -2620,21 +2636,21 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QLabel" name="label_25">
+             <widget class="QLabel" name="label_link01">
               <property name="text">
                <string>0/1</string>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QLabel" name="label_26">
+             <widget class="QLabel" name="label_link02">
               <property name="text">
                <string>0/1</string>
               </property>
              </widget>
             </item>
             <item row="2" column="1">
-             <widget class="QLabel" name="label_27">
+             <widget class="QLabel" name="label_link03">
               <property name="text">
                <string>0/1</string>
               </property>
@@ -2729,105 +2745,190 @@ p, li { white-space: pre-wrap; }
         <property name="geometry">
          <rect>
           <x>470</x>
-          <y>10</y>
-          <width>421</width>
-          <height>209</height>
+          <y>20</y>
+          <width>431</width>
+          <height>301</height>
          </rect>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>27</height>
+         </size>
+        </property>
         <property name="title">
-         <string>上升截骨</string>
+         <string>上升截骨【点击03】</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_8">
-         <item row="1" column="0">
-          <widget class="QPushButton" name="startSagCut_pushButton">
+         <item row="0" column="1">
+          <widget class="QGroupBox" name="groupBox_65">
            <property name="minimumSize">
             <size>
-             <width>150</width>
-             <height>27</height>
+             <width>220</width>
+             <height>0</height>
             </size>
            </property>
-           <property name="text">
-            <string>确定截骨面/开始截骨</string>
+           <property name="title">
+            <string>上升截骨控制</string>
            </property>
+           <layout class="QVBoxLayout" name="verticalLayout_8">
+            <item>
+             <widget class="QPushButton" name="guideSagCut_pushButton">
+              <property name="minimumSize">
+               <size>
+                <width>180</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>开始上升截骨夹角验证</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="startSagCut_pushButton">
+              <property name="minimumSize">
+               <size>
+                <width>180</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>确定上升截骨面</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_2">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string> 开始上升截骨</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_5">
+              <property name="minimumSize">
+               <size>
+                <width>180</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>完成上升截骨</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="generateSagCut_pushButton">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>180</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>静态上升截骨模拟</string>
+              </property>
+              <property name="checkable">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="checkSagCut_pushButton">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>180</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>完成上升截骨(State)</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </item>
-         <item row="4" column="0">
-          <widget class="QPushButton" name="checkSagCut_pushButton">
-           <property name="enabled">
-            <bool>false</bool>
+         <item row="0" column="2">
+          <widget class="QGroupBox" name="groupBox_62">
+           <property name="title">
+            <string>上升截骨面夹角验证</string>
            </property>
-           <property name="minimumSize">
-            <size>
-             <width>150</width>
-             <height>27</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>完成上升截骨(State)</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="0">
-          <widget class="QPushButton" name="guideSagCut_pushButton">
-           <property name="minimumSize">
-            <size>
-             <width>150</width>
-             <height>27</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>开始上升截骨导航</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0">
-          <widget class="QPushButton" name="generateSagCut_pushButton">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>150</width>
-             <height>27</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>静态上升截骨模拟</string>
-           </property>
-           <property name="checkable">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QPushButton" name="pushButton_5">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>27</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>完成上升截骨</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1" rowspan="5">
-          <widget class="QTextBrowser" name="textBrowser_SagCut">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>150</height>
-            </size>
-           </property>
-           <property name="html">
-            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'SimSun'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;1.显示与水平截骨面夹角&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;2. = 110° 则确认截骨&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
+           <layout class="QGridLayout" name="gridLayout_21">
+            <item row="2" column="2">
+             <widget class="QLabel" name="label_28">
+              <property name="text">
+               <string>110</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLabel" name="label_27">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>偏差值(°):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="label_24">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>实际夹角(°):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="label_25">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>推荐夹角(°):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QLabel" name="label_26">
+              <property name="text">
+               <string>110</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QLabel" name="label_CutPlaneAngle_2">
+              <property name="text">
+               <string>0</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </item>
         </layout>
@@ -2835,103 +2936,258 @@ p, li { white-space: pre-wrap; }
        <widget class="QGroupBox" name="groupBox_50">
         <property name="geometry">
          <rect>
-          <x>10</x>
-          <y>10</y>
-          <width>441</width>
-          <height>211</height>
+          <x>20</x>
+          <y>230</y>
+          <width>431</width>
+          <height>271</height>
          </rect>
         </property>
         <property name="title">
-         <string>水平截骨</string>
+         <string>水平截骨【点击02】</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_7">
-         <item row="4" column="1" rowspan="2">
-          <widget class="QTextBrowser" name="textBrowser_AxialCut02">
+         <item row="1" column="1" rowspan="4">
+          <widget class="QGroupBox" name="groupBox_53">
+           <property name="title">
+            <string>水平截骨深度信息</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_20">
+            <item row="0" column="1">
+             <widget class="QLabel" name="label_setCutDepth">
+              <property name="text">
+               <string>0 mm</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_11">
+              <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>当前截骨深度:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_2">
+              <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>规划截骨深度:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="label_currentCutDepth">
+              <property name="text">
+               <string>0 mm</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_22">
+              <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>距离最大深度:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLabel" name="label_current2end">
+              <property name="text">
+               <string>0 mm</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QGroupBox" name="groupBox_54">
            <property name="minimumSize">
             <size>
              <width>0</width>
              <height>60</height>
             </size>
            </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>55</height>
-            </size>
+           <property name="title">
+            <string>截骨安全状态</string>
            </property>
-           <property name="html">
-            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'SimSun'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;1.显示截骨深度&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
+           <layout class="QGridLayout" name="gridLayout_22">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_30">
+              <property name="text">
+               <string>摆锯电源/安全:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="label_31">
+              <property name="text">
+               <string>Power OFF</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </item>
-         <item row="6" column="0">
-          <widget class="QPushButton" name="checkAxialCut_pushButton">
-           <property name="enabled">
-            <bool>false</bool>
+         <item row="0" column="0" rowspan="2">
+          <widget class="QGroupBox" name="groupBox_63">
+           <property name="title">
+            <string>水平截骨控制</string>
            </property>
-           <property name="minimumSize">
-            <size>
-             <width>150</width>
-             <height>27</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>完成水平截骨(State)</string>
-           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_7">
+            <item>
+             <widget class="QPushButton" name="pushButton">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>开始水平截骨</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_4">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>完成水平截骨</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="checkAxialCut_pushButton">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>150</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>完成水平截骨(State)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="generateAxialCut_pushButton">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>150</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>静态水平截骨模拟</string>
+              </property>
+              <property name="checkable">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </item>
-         <item row="4" column="0" rowspan="2">
-          <widget class="QPushButton" name="pushButton_4">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>27</height>
-            </size>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_56">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>40</y>
+          <width>431</width>
+          <height>161</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>开始摆锯导航【点击01】</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_19">
+         <item row="0" column="1" rowspan="3">
+          <widget class="QGroupBox" name="groupBox_57">
+           <property name="title">
+            <string>水平截骨面夹角验证</string>
            </property>
-           <property name="text">
-            <string>完成水平截骨</string>
-           </property>
+           <layout class="QGridLayout" name="gridLayout_23">
+            <item row="0" column="1" colspan="2">
+             <widget class="QLabel" name="label_33">
+              <property name="text">
+               <string>2</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1" colspan="2">
+             <widget class="QLabel" name="label_CutPlaneAngle">
+              <property name="text">
+               <string>0</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_32">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>夹角限制(°):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_8">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>夹角(°):</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </item>
-         <item row="1" column="0">
+         <item row="0" column="0">
           <widget class="QPushButton" name="guideAxialCut_pushButton">
            <property name="minimumSize">
             <size>
              <width>150</width>
-             <height>27</height>
+             <height>30</height>
             </size>
            </property>
            <property name="text">
-            <string>开始水平截骨导航</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1" rowspan="2">
-          <widget class="QTextBrowser" name="textBrowser_AxialCut">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>60</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>60</height>
-            </size>
-           </property>
-           <property name="html">
-            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'SimSun'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;1.显示克式钉的截骨角度&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;2. &amp;lt; 角度阈值 则确认截骨&lt;/p&gt;
-&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>开始摆锯导航</string>
            </property>
           </widget>
          </item>
@@ -2940,53 +3196,51 @@ p, li { white-space: pre-wrap; }
            <property name="minimumSize">
             <size>
              <width>150</width>
-             <height>27</height>
+             <height>30</height>
             </size>
            </property>
            <property name="text">
-            <string>确定截骨面/开始截骨</string>
+            <string>确定当前水平截骨面</string>
            </property>
           </widget>
          </item>
-         <item row="7" column="0">
-          <widget class="QPushButton" name="generateAxialCut_pushButton">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>150</width>
-             <height>27</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>静态水平截骨模拟</string>
-           </property>
-           <property name="checkable">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="6" column="1" rowspan="2">
-          <widget class="QTextBrowser" name="textBrowser_AxialCut03">
+         <item row="1" column="0">
+          <widget class="QPushButton" name="pushButton_startAngleCheck">
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>60</height>
+             <height>30</height>
             </size>
            </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>50</height>
-            </size>
+           <property name="text">
+            <string>进行夹角验证</string>
            </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_66">
+        <property name="geometry">
+         <rect>
+          <x>470</x>
+          <y>330</y>
+          <width>431</width>
+          <height>191</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>手术控制【LOG】</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_22">
+         <item>
+          <widget class="QTextBrowser" name="textBrowser_DepthGuide_2">
            <property name="html">
             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'SimSun'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;1.显示截骨安全状态&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;截骨/钻孔深度&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;进行手术保护&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
           </widget>
          </item>
@@ -3207,9 +3461,9 @@ p, li { white-space: pre-wrap; }
        <widget class="QGroupBox" name="groupBox_61">
         <property name="geometry">
          <rect>
-          <x>70</x>
+          <x>50</x>
           <y>69</y>
-          <width>341</width>
+          <width>361</width>
           <height>81</height>
          </rect>
         </property>
@@ -3248,9 +3502,9 @@ p, li { white-space: pre-wrap; }
        <widget class="QGroupBox" name="groupBox_58">
         <property name="geometry">
          <rect>
-          <x>70</x>
+          <x>50</x>
           <y>170</y>
-          <width>341</width>
+          <width>361</width>
           <height>81</height>
          </rect>
         </property>
@@ -3743,7 +3997,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
       <property name="text">
-       <string>春立-HTO_NDI Release Version 1.1</string>
+       <string>春立-HTO_NDI Demo Version 3.8</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_42">
@@ -3762,7 +4016,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
       <property name="text">
-       <string>Updated Date: 2024.09.10</string>
+       <string>Updated Date: 2024.09.11</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_43">

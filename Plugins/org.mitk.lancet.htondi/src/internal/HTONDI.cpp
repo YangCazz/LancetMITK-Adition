@@ -420,6 +420,10 @@ void HTONDI::CreateQT_MidOperation()
 	connect(m_Controls.pushButton_setKeShi01, &QPushButton::clicked, this, &HTONDI::OnSetKeShi01Clicked);
 	connect(m_Controls.pushButton_setKeShi02, &QPushButton::clicked, this, &HTONDI::OnSetKeShi02Clicked);
 
+	connect(m_Controls.pushButton_finishCurrent, &QPushButton::clicked, this, &HTONDI::OnFinishCurrentDrillClicked);
+
+	
+
 	// 2. 截骨导航
 	// 水平截骨
 	connect(m_Controls.guideAxialCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartAxialGuideClicked);
@@ -429,6 +433,7 @@ void HTONDI::CreateQT_MidOperation()
 	// 确定水平截骨平面位置
 	connect(m_Controls.checkAxialCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnCheckStateCutClicked);
 	
+	connect(m_Controls.pushButton_startAngleCheck, &QPushButton::clicked, this, &HTONDI::OnStartAngleCheckClicked);
 
 
 	// 上升截骨
