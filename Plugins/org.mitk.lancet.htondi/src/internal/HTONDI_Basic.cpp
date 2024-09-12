@@ -658,31 +658,7 @@ Eigen::Vector3d HTONDI::ExtractNormalFromPlane(const std::string& planeName)
 			normalVector.normalize();
 			normal = normalVector;
 
-			/*
-			// 可视化
-			mitk::PointSet::Pointer tmpMitkPointSet = mitk::PointSet::New();
-			tmpMitkPointSet->InsertPoint(0, p1);
-			tmpMitkPointSet->InsertPoint(1, p2);
-			tmpMitkPointSet->InsertPoint(2, p3);
-
-			// 否则创建新的平面
-			auto tmpNodes = GetDataStorage()->GetNamedNode("TmpPoint");
-			if (tmpNodes) {
-				GetDataStorage()->Remove(tmpNodes);
-				//// 如果已经创建则更新其信息
-				//tmpNodes->SetData(mitkPointSetRealTime);
-			}
-			mitk::DataNode::Pointer pointSetInPlaneCutPlane = mitk::DataNode::New();
-			pointSetInPlaneCutPlane->SetName("TmpPoint");
-			// 红色，大小 5.0
-			pointSetInPlaneCutPlane->SetColor(0.0, 0.0, 1.0);
-			pointSetInPlaneCutPlane->SetData(tmpMitkPointSet);
-			pointSetInPlaneCutPlane->SetFloatProperty("pointsize", 5.0);
-			GetDataStorage()->Add(pointSetInPlaneCutPlane);
-			*/
 			cout << "test 02-07" << endl;
-			//GetDataStorage()->Modified();
-			//mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 		}
 	}
 	return normal;
@@ -721,7 +697,7 @@ void HTONDI::CaculateCutPlaneMiss01()
 	}
 	cout << "test 01-04" << endl;
 	// 输出夹角到实际的位置
-	m_Controls.textBrowser_AxialCut->append("Real time Angle Miss: " + QString::number(angleInDegrees));
+	m_Controls.label_CutPlaneAngle->setText(QString::number(angleInDegrees));
 }
 
 void HTONDI::CaculateCutPlaneMiss02()
@@ -753,7 +729,7 @@ void HTONDI::CaculateCutPlaneMiss02()
 
 	cout << "test 01-04" << endl;
 	// 输出夹角到实际的位置
-	m_Controls.textBrowser_SagCut->append("Real time Angle Miss: " + QString::number(angleInDegrees));
+	m_Controls.label_CutPlaneAngle2Sag->setText(QString::number(angleInDegrees));
 }
 
 // 计算平面上的若干点相对于法向量和原点确定的坐标系下的坐标位置

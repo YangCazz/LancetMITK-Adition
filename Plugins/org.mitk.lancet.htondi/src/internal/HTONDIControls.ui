@@ -109,8 +109,62 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="currentIndex">
-       <number>7</number>
+       <number>8</number>
       </property>
+      <widget class="QWidget" name="tab_5">
+       <attribute name="title">
+        <string>使用前需知</string>
+       </attribute>
+       <widget class="QPlainTextEdit" name="plainTextEdit">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>881</width>
+          <height>501</height>
+         </rect>
+        </property>
+        <property name="plainText">
+         <string>此demo用于验证春丽HTO软件流程，当前版本为【3.8】
+在使用demo前请预先加载功能依赖的基本数据，图像表面数据和预先设计好的功能文件在同目录下的文件夹内
+【功能更新LOG】
+	1.修正克式钉规划生成方法
+	2.添加规划钻骨深度计算用于导航显示
+	3.添加断电保护验证
+【术前规划】：
+	【01】特征点标记/特征点数据加载
+	【02】影像股骨头中心拟合：依据表面标记点完成股骨头中心的拟合   
+	【03】截骨面规划：水平截骨 + 截骨面微调 + 上升截骨
+	【04】力线演算：力线显示 + 在胫骨平台占比计算
+	【05】撑开角度规划：截骨两端按合页轴(截骨面前端)旋转撑开
+	【06】钢板规划：
+【硬件准备】：
+	【01】NDI相机连接：加载.IGTToolStorage仓库 + 显示连接状态
+
+【术中注册】：
+	【01】探针注册 + 探针标定
+	【02】股骨/胫骨标记 注册
+	【03】摆锯标定
+	【04】磨钻标定
+	【05】晃腿获得实际股骨头中心
+	【06】股骨/胫骨标记验证
+	【07】股骨粗配准点采集 + 配准计算
+	【08】胫骨粗配准点采集 + 配准计算
+	【09】胫骨精配准点采集 + 配准应用
+
+【术中导航】：===== 在手术设备准备齐全情况下克验证导航效果 ======
+	【01】克式钉磨钻导航 + 磨钻深度计算
+	【02】水平截骨导航   + 截骨深度导航
+	【03】上升截骨导航   + 截骨深度导航
+	【04】撑开角度导航
+	【05】术中力线显示   + 术后力线显示
+	【06】钢板固定导航
+
+【术后评估】：
+	【01】术后力线验证 显示偏移量</string>
+        </property>
+       </widget>
+      </widget>
       <widget class="QWidget" name="tab_6">
        <attribute name="title">
         <string>术前规划01</string>
@@ -415,60 +469,6 @@ p, li { white-space: pre-wrap; }
           </widget>
          </item>
         </layout>
-       </widget>
-      </widget>
-      <widget class="QWidget" name="tab_5">
-       <attribute name="title">
-        <string>使用前需知</string>
-       </attribute>
-       <widget class="QPlainTextEdit" name="plainTextEdit">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>10</y>
-          <width>881</width>
-          <height>501</height>
-         </rect>
-        </property>
-        <property name="plainText">
-         <string>此demo用于验证春丽HTO软件流程，当前版本为【3.8】
-在使用demo前请预先加载功能依赖的基本数据，图像表面数据和预先设计好的功能文件在同目录下的文件夹内
-【功能更新LOG】
-	1.修正克式钉规划生成方法
-	2.添加规划钻骨深度计算用于导航显示
-	3.添加断电保护验证
-【术前规划】：
-	【01】特征点标记/特征点数据加载
-	【02】影像股骨头中心拟合：依据表面标记点完成股骨头中心的拟合   
-	【03】截骨面规划：水平截骨 + 截骨面微调 + 上升截骨
-	【04】力线演算：力线显示 + 在胫骨平台占比计算
-	【05】撑开角度规划：截骨两端按合页轴(截骨面前端)旋转撑开
-	【06】钢板规划：
-【硬件准备】：
-	【01】NDI相机连接：加载.IGTToolStorage仓库 + 显示连接状态
-
-【术中注册】：
-	【01】探针注册 + 探针标定
-	【02】股骨/胫骨标记 注册
-	【03】摆锯标定
-	【04】磨钻标定
-	【05】晃腿获得实际股骨头中心
-	【06】股骨/胫骨标记验证
-	【07】股骨粗配准点采集 + 配准计算
-	【08】胫骨粗配准点采集 + 配准计算
-	【09】胫骨精配准点采集 + 配准应用
-
-【术中导航】：===== 在手术设备准备齐全情况下克验证导航效果 ======
-	【01】克式钉磨钻导航 + 磨钻深度计算
-	【02】水平截骨导航   + 截骨深度导航
-	【03】上升截骨导航   + 截骨深度导航
-	【04】撑开角度导航
-	【05】术中力线显示   + 术后力线显示
-	【06】钢板固定导航
-
-【术后评估】：
-	【01】术后力线验证 显示偏移量</string>
-        </property>
        </widget>
       </widget>
       <widget class="QWidget" name="tab_10">
@@ -2744,10 +2744,10 @@ p, li { white-space: pre-wrap; }
        <widget class="QGroupBox" name="groupBox_51">
         <property name="geometry">
          <rect>
-          <x>470</x>
-          <y>20</y>
-          <width>431</width>
-          <height>301</height>
+          <x>410</x>
+          <y>10</y>
+          <width>491</width>
+          <height>311</height>
          </rect>
         </property>
         <property name="minimumSize">
@@ -2764,7 +2764,7 @@ p, li { white-space: pre-wrap; }
           <widget class="QGroupBox" name="groupBox_65">
            <property name="minimumSize">
             <size>
-             <width>220</width>
+             <width>180</width>
              <height>0</height>
             </size>
            </property>
@@ -2786,7 +2786,7 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="startSagCut_pushButton">
+             <widget class="QPushButton" name="setSagCut_pushButton">
               <property name="minimumSize">
                <size>
                 <width>180</width>
@@ -2799,7 +2799,7 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_2">
+             <widget class="QPushButton" name="startSagCut_pushButton">
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -2812,7 +2812,7 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_5">
+             <widget class="QPushButton" name="endSagCut_pushButton">
               <property name="minimumSize">
                <size>
                 <width>180</width>
@@ -2868,36 +2868,10 @@ p, li { white-space: pre-wrap; }
             <string>上升截骨面夹角验证</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_21">
-            <item row="2" column="2">
-             <widget class="QLabel" name="label_28">
+            <item row="0" column="2">
+             <widget class="QLabel" name="label_26">
               <property name="text">
                <string>110</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QLabel" name="label_27">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>偏差值(°):</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QLabel" name="label_24">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>实际夹角(°):</string>
               </property>
              </widget>
             </item>
@@ -2910,19 +2884,39 @@ p, li { white-space: pre-wrap; }
                </size>
               </property>
               <property name="text">
-               <string>推荐夹角(°):</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="2">
-             <widget class="QLabel" name="label_26">
-              <property name="text">
-               <string>110</string>
+               <string>与水平面夹角规划(°):</string>
               </property>
              </widget>
             </item>
             <item row="1" column="2">
-             <widget class="QLabel" name="label_CutPlaneAngle_2">
+             <widget class="QLabel" name="label_CutPlaneAngle2Axial">
+              <property name="text">
+               <string>0</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="label_24">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>与水平面实际夹角(°):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLabel" name="label_20">
+              <property name="text">
+               <string>与规划上升面实际夹角(°):</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="2">
+             <widget class="QLabel" name="label_CutPlaneAngle2Sag">
               <property name="text">
                <string>0</string>
               </property>
@@ -2938,7 +2932,7 @@ p, li { white-space: pre-wrap; }
          <rect>
           <x>20</x>
           <y>230</y>
-          <width>431</width>
+          <width>381</width>
           <height>271</height>
          </rect>
         </property>
@@ -3035,9 +3029,23 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QLabel" name="label_31">
+             <widget class="QLabel" name="label_sawPower">
               <property name="text">
                <string>Power OFF</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_10">
+              <property name="text">
+               <string>截骨状态:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="label_cutState">
+              <property name="text">
+               <string>NONE</string>
               </property>
              </widget>
             </item>
@@ -3046,12 +3054,18 @@ p, li { white-space: pre-wrap; }
          </item>
          <item row="0" column="0" rowspan="2">
           <widget class="QGroupBox" name="groupBox_63">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>220</height>
+            </size>
+           </property>
            <property name="title">
             <string>水平截骨控制</string>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_7">
             <item>
-             <widget class="QPushButton" name="pushButton">
+             <widget class="QPushButton" name="pushButton_startAxialCut">
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -3064,7 +3078,7 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_4">
+             <widget class="QPushButton" name="pushButton_stopAxialCut">
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -3121,7 +3135,7 @@ p, li { white-space: pre-wrap; }
          <rect>
           <x>20</x>
           <y>40</y>
-          <width>431</width>
+          <width>381</width>
           <height>161</height>
          </rect>
         </property>
@@ -3222,9 +3236,9 @@ p, li { white-space: pre-wrap; }
        <widget class="QGroupBox" name="groupBox_66">
         <property name="geometry">
          <rect>
-          <x>470</x>
+          <x>410</x>
           <y>330</y>
-          <width>431</width>
+          <width>491</width>
           <height>191</height>
          </rect>
         </property>
@@ -3255,9 +3269,9 @@ p, li { white-space: pre-wrap; }
         <property name="geometry">
          <rect>
           <x>470</x>
-          <y>20</y>
+          <y>180</y>
           <width>421</width>
-          <height>481</height>
+          <height>311</height>
          </rect>
         </property>
         <property name="title">
@@ -3283,13 +3297,432 @@ p, li { white-space: pre-wrap; }
          </item>
         </layout>
        </widget>
-       <widget class="QGroupBox" name="groupBox_73">
+       <widget class="QLabel" name="label_17">
         <property name="geometry">
          <rect>
-          <x>20</x>
-          <y>300</y>
-          <width>431</width>
-          <height>211</height>
+          <x>10</x>
+          <y>0</y>
+          <width>561</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>微软雅黑</family>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+          <underline>true</underline>
+         </font>
+        </property>
+        <property name="text">
+         <string>撑开角度导航   钢板固定导航   力线验证</string>
+        </property>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_61">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>40</y>
+          <width>221</width>
+          <height>221</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>撑开角度实时计算【点击01】</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_16">
+         <item>
+          <widget class="QPushButton" name="checkCutResult_pushButton">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>校验截骨结果</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="generateCutSurface_pushButton">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>27</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>生成截骨模型</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="startCutAngleGuide_pushButton">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>撑开角度导航</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_58">
+        <property name="geometry">
+         <rect>
+          <x>240</x>
+          <y>100</y>
+          <width>221</width>
+          <height>61</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>术中力线实时计算【点击02】</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_15">
+         <item>
+          <widget class="QPushButton" name="forceLineCaculate03_pushButton">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>计算/显示力线</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="forceLineVisulize_pushButton">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>隐藏力线</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_68">
+        <property name="geometry">
+         <rect>
+          <x>240</x>
+          <y>170</y>
+          <width>221</width>
+          <height>91</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>钢板固定导航【点击03】</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_14">
+         <item>
+          <widget class="QLabel" name="label_23">
+           <property name="text">
+            <string>钢板固定导航回到 【术中导航02】</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="setSteelPos_pushButton">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>27</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>完成钢板固定</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_69">
+        <property name="geometry">
+         <rect>
+          <x>470</x>
+          <y>20</y>
+          <width>421</width>
+          <height>151</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>术中比信息【显示】</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_24">
+         <item row="1" column="1">
+          <widget class="QLabel" name="label_49">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>0.9</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLabel" name="label_34">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>NAN</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="label_44">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>50.0</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_28">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>实时撑开角度(°):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_40">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>规划力线占比(%):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_48">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>120</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>规划撑开角度(°):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_27">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>实时力线占比(%):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLabel" name="label_31">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>NAN</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLabel" name="label_52">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>120</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>力线占比差值(%):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <widget class="QLabel" name="label_53">
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>NAN</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
+          <widget class="QLabel" name="label_54">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>120</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>撑开角度差值(°):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="3">
+          <widget class="QLabel" name="label_55">
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>NAN</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_71">
+        <property name="geometry">
+         <rect>
+          <x>240</x>
+          <y>40</y>
+          <width>221</width>
+          <height>57</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>模拟旋转【点击】</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_24">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_50">
+           <item>
+            <widget class="QLabel" name="Label_28">
+             <property name="text">
+              <string>旋转</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_lt_2">
+             <property name="text">
+              <string>-</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="LineEdit_transAngle_2">
+             <property name="text">
+              <string>2</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_50">
+             <property name="text">
+              <string>°</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_rt_2">
+             <property name="text">
+              <string>+</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_74">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>270</y>
+          <width>441</width>
+          <height>221</height>
          </rect>
         </property>
         <property name="title">
@@ -3402,7 +3835,7 @@ p, li { white-space: pre-wrap; }
             </widget>
            </item>
            <item row="3" column="1">
-            <widget class="QLabel" name="label_50">
+            <widget class="QLabel" name="label_59">
              <property name="text">
               <string>(mm/°)</string>
              </property>
@@ -3423,7 +3856,7 @@ p, li { white-space: pre-wrap; }
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QLabel" name="label_51">
+            <widget class="QLabel" name="label_60">
              <property name="layoutDirection">
               <enum>Qt::LeftToRight</enum>
              </property>
@@ -3436,110 +3869,6 @@ p, li { white-space: pre-wrap; }
          </item>
         </layout>
        </widget>
-       <widget class="QLabel" name="label_17">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>0</y>
-          <width>561</width>
-          <height>41</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <family>微软雅黑</family>
-          <pointsize>12</pointsize>
-          <weight>75</weight>
-          <bold>true</bold>
-          <underline>true</underline>
-         </font>
-        </property>
-        <property name="text">
-         <string>撑开角度导航   钢板固定导航   力线验证</string>
-        </property>
-       </widget>
-       <widget class="QGroupBox" name="groupBox_61">
-        <property name="geometry">
-         <rect>
-          <x>50</x>
-          <y>69</y>
-          <width>361</width>
-          <height>81</height>
-         </rect>
-        </property>
-        <property name="title">
-         <string>撑开角度计算【点击01】</string>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_16">
-         <item>
-          <widget class="QPushButton" name="checkRealtimeCut_pushButton">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>校验截骨结果/计算截骨面</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="startAngleCaculate_pushButton">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>撑开角度计算</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QGroupBox" name="groupBox_58">
-        <property name="geometry">
-         <rect>
-          <x>50</x>
-          <y>170</y>
-          <width>361</width>
-          <height>81</height>
-         </rect>
-        </property>
-        <property name="title">
-         <string>术中力线验证【点击02】</string>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_15">
-         <item>
-          <widget class="QPushButton" name="pushButton_57">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>计算/显示力线</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButton_58">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>隐藏力线</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
       </widget>
       <widget class="QWidget" name="tab_16">
        <attribute name="title">
@@ -3548,10 +3877,10 @@ p, li { white-space: pre-wrap; }
        <widget class="QGroupBox" name="groupBox_60">
         <property name="geometry">
          <rect>
-          <x>20</x>
-          <y>40</y>
-          <width>881</width>
-          <height>441</height>
+          <x>60</x>
+          <y>50</y>
+          <width>191</width>
+          <height>171</height>
          </rect>
         </property>
         <property name="title">
@@ -3571,19 +3900,6 @@ p, li { white-space: pre-wrap; }
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
-          <widget class="QPushButton" name="unshowRes_pushButton">
-           <property name="minimumSize">
-            <size>
-             <width>150</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>隐藏力线</string>
-           </property>
-          </widget>
-         </item>
          <item row="2" column="0">
           <widget class="QPushButton" name="caculateError_pushButton">
            <property name="minimumSize">
@@ -3597,21 +3913,16 @@ p, li { white-space: pre-wrap; }
            </property>
           </widget>
          </item>
-         <item row="0" column="1" rowspan="3">
-          <widget class="QTextBrowser" name="textBrowser_15">
+         <item row="1" column="0">
+          <widget class="QPushButton" name="unshowRes_pushButton">
            <property name="minimumSize">
             <size>
-             <width>0</width>
-             <height>200</height>
+             <width>150</width>
+             <height>30</height>
             </size>
            </property>
-           <property name="html">
-            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'SimSun'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;显示动作&lt;/p&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;计算偏移值&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <property name="text">
+            <string>隐藏力线</string>
            </property>
           </widget>
          </item>
@@ -3639,6 +3950,105 @@ p, li { white-space: pre-wrap; }
          <string>术后力线验证</string>
         </property>
        </widget>
+       <widget class="QGroupBox" name="groupBox_73">
+        <property name="geometry">
+         <rect>
+          <x>270</x>
+          <y>50</y>
+          <width>311</width>
+          <height>171</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>术后对比信息【显示】</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_26">
+         <item row="3" column="2">
+          <widget class="QLabel" name="label_56">
+           <property name="text">
+            <string>撑开角度差值(°):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLabel" name="label_finalLine">
+           <property name="text">
+            <string>NAN</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_69">
+           <property name="text">
+            <string>术后力线占比(%):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLabel" name="label_finalAngle">
+           <property name="text">
+            <string>NAN</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLabel" name="label_51">
+           <property name="text">
+            <string>占比差值(%):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_67">
+           <property name="text">
+            <string>规划力线占比(%):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_68">
+           <property name="text">
+            <string>规划撑开角度(°):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="label_71">
+           <property name="text">
+            <string>0.9</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_73">
+           <property name="text">
+            <string>术后撑开角度(°):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="label_70">
+           <property name="text">
+            <string>50.0</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <widget class="QLabel" name="label_57">
+           <property name="text">
+            <string>NAN</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="3">
+          <widget class="QLabel" name="label_58">
+           <property name="text">
+            <string>NAN</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </widget>
       <widget class="QWidget" name="tab_9">
        <attribute name="title">
@@ -3654,7 +4064,7 @@ p, li { white-space: pre-wrap; }
          </rect>
         </property>
         <property name="currentIndex">
-         <number>2</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="tab">
          <attribute name="title">
@@ -3997,7 +4407,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
       <property name="text">
-       <string>春立-HTO_NDI Demo Version 3.8</string>
+       <string>春立-HTO_NDI Demo Version 3.9</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_42">
@@ -4016,7 +4426,7 @@ p, li { white-space: pre-wrap; }
        </font>
       </property>
       <property name="text">
-       <string>Updated Date: 2024.09.11</string>
+       <string>Updated Date: 2024.09.12</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_43">

@@ -690,16 +690,7 @@ void HTONDI::UpdateHTOSaw()
 		}
 
 		// 输出夹角到实际的位置
-		m_Controls.textBrowser_AxialCut->append("Real time Angle Miss: " + QString::number(angleInDegrees));
-
-		if (angleInDegrees < 0.5)
-		{
-			m_Controls.textBrowser_AxialCut03->setText("Current Angle Missing < 0.5 is acceptable.");
-		}
-		else
-		{
-			m_Controls.textBrowser_AxialCut03->setText("Current Angle Missing > 0.5 !!");
-		}
+		m_Controls.label_CutPlaneAngle->setText(QString::number(angleInDegrees));
 	}
 	
 
@@ -743,28 +734,24 @@ void HTONDI::UpdateHTOSaw()
 			// 依据点坐标来进行判别输出
 			if (pos_FrontLeft[0] > m_CutIntersectionMinPos[0] && pos_FrontLeft[0] < m_CutIntersectionMaxPos[0])
 			{
-				/* 锯片前端出于胫骨内部 */
-				m_Controls.textBrowser_AxialCut02->setText("Current Cut Depth: " + QString::number(front2Min));
+				/* 锯片前端处于胫骨内部 */
+				m_Controls.label_currentCutDepth->setText(QString::number(front2Min) + " mm");
 
 				// 进行截骨阈值判断
 				if (m_threshold_SawDepth - front2Min >= 0.2)
 				{
-					m_Controls.textBrowser_AxialCut03->setText("State: Safe");
+					m_Controls.label_cutState->setText("Safe");
 				}
 				else if (m_threshold_SawDepth - front2Min >= 0 && m_threshold_SawDepth - front2Min < 0.2)
 				{
-					m_Controls.textBrowser_AxialCut03->setText("State: Warning!");
+					m_Controls.label_cutState->setText("Warning!");
 				}
-			}
-			else if (pos_FrontLeft[0] < m_CutIntersectionMinPos[0])
-			{
-				/* 锯片前端未抵达胫骨 */
-				m_Controls.textBrowser_AxialCut02->setText("Current Cut Depth: 0, Current Distance From SawFront to Tibia: " + QString::number(front2Min));
 			}
 			else if (pos_FrontLeft[0] > m_CutIntersectionMaxPos[0])
 			{
 				/* 锯片前端磨穿达胫骨 */
-				m_Controls.textBrowser_AxialCut03->setText("State: Saw System Off.");
+				m_Controls.label_cutState->setText("Shout Down!");
+				m_Controls.label_sawPower->setText("Power OFF");
 				m_SawPower = false;
 			}
 		}
@@ -854,10 +841,8 @@ void  HTONDI::UpdateHTOSaw02()
 	GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial")->GetData()->GetGeometry()->Modified();
 
 
-
-
-	// 2. 首先确保克式钉确定的截骨平面是正确的
-	if (m_RealtimeAngleCheck) {
+	if (m_RealtimeAngleCheck && AngleCheck_type == 0) {
+		// 克式钉截骨平面角度验证
 		cout << "test Saw 10" << endl;
 		// 计算法向量夹角
 		auto sourceCutPlane01 = dynamic_cast<mitk::Surface*>(GetDataStorage()->GetNamedNode("1st cut plane")->GetData());
@@ -894,71 +879,149 @@ void  HTONDI::UpdateHTOSaw02()
 		// 刷新夹角信息
 		m_Controls.label_CutPlaneAngle->setText(QString::number(angleInDegrees));
 	}
+	else if (m_RealtimeAngleCheck && AngleCheck_type == 1)
+	{
+		// 上升截骨面确认
+		// 1. 显示规划的截骨面 + 显示实时截骨面位置
+		auto preCutPlane01 = GetDataStorage()->GetNamedNode("1st cut plane");
+		auto preCutPlane02 = GetDataStorage()->GetNamedNode("2nd cut plane");
+		auto realTimeSawPlane = GetDataStorage()->GetNamedNode("CurrentCutPlane01");
+		auto realTimeSaw = GetDataStorage()->GetNamedNode("Saw");
+		if (preCutPlane01 && preCutPlane02 && realTimeSaw)
+		{
+			// 分别计算平面的法向量
+			auto cutPlaneSource01 = dynamic_cast<mitk::Surface*>(preCutPlane01->GetData());
+			auto cutPlanePolyData01 = cutPlaneSource01->GetVtkPolyData();
+
+			auto cutPlaneSource02 = dynamic_cast<mitk::Surface*>(preCutPlane02->GetData());
+			auto cutPlanePolyData02 = cutPlaneSource02->GetVtkPolyData();
+
+			auto realTimeSawPlaneSource = dynamic_cast<mitk::Surface*>(realTimeSawPlane->GetData());
+			auto realTimeSawPlanePolyData = cutPlaneSource02->GetVtkPolyData();
+
+			Eigen::Vector3d normalPlane01, normalPlane02, current_normalPlane;
+			normalPlane01 = ExtractNormalFromPlane("1st cut plane");
+			normalPlane02 = ExtractNormalFromPlane("2nd cut plane");
+			current_normalPlane = ExtractNormalFromPlane("CurrentCutPlane01");
+
+			// 将它们的z方向都改位正
+			if (normalPlane01[2] < 0) { normalPlane01 = -normalPlane01; };
+			if (normalPlane02[2] < 0) { normalPlane01 = -normalPlane01; };
+			if (current_normalPlane[2] < 0) { normalPlane01 = -normalPlane01; };
+
+			// current->plane01
+			// current->plane02
+
+			// current->plane01
+			// 计算 normalPlane01 和 current_normalPlane 的夹角
+			double dotProduct1 = normalPlane01.dot(current_normalPlane);
+			double magnitude1_1 = normalPlane01.norm();
+			double magnitude1_2 = current_normalPlane.norm();
+			double cosAngle1 = dotProduct1 / (magnitude1_1 * magnitude1_2);
+			cosAngle1 = std::clamp(cosAngle1, -1.0, 1.0);
+			double angleInRadians1 = std::acos(cosAngle1);
+			double angleInDegrees1 = std::round(angleInRadians1 * (180.0 / M_PI) * 10) / 10;
+
+			// current->plane02
+			// 计算 normalPlane02 和 current_normalPlane 的夹角
+			double dotProduct2 = normalPlane02.dot(current_normalPlane);
+			double magnitude2_1 = normalPlane02.norm();
+			double magnitude2_2 = current_normalPlane.norm();
+			double cosAngle2 = dotProduct2 / (magnitude2_1 * magnitude2_2);
+			cosAngle2 = std::clamp(cosAngle2, -1.0, 1.0);
+			double angleInRadians2 = std::acos(cosAngle2);
+			double angleInDegrees2 = std::round(angleInRadians2 * (180.0 / M_PI) * 10) / 10;
+
+			// 输出夹角到实际的位置
+			m_Controls.label_CutPlaneAngle2Axial->setText(QString::number(angleInDegrees1));
+			m_Controls.label_CutPlaneAngle2Sag->setText(QString::number(angleInDegrees2));
+		}
+		else
+		{
+			m_Controls.textBrowser_Action->append("Cut plane or Saw model Not Found!");
+			return;
+		}
+	}
 
 
 	// 3. 在确定截骨角度正常后，开始进行截骨
-	// - 首先计算截骨线 ==> 然后计算截骨深度
-	// - 这里假设摆锯前端与规划截骨面前端平行
+	// 实际按照术前规划的截骨面进行截骨
 
-	// 3.1 计算截骨线，获取最值点
-	if (m_RealtimeCutPlaneCheck == true)
-	{
-		// 以调整好的克式钉角度进行截骨计算
-		GetRealTimeIntersectionLine("CurrentCutPlane01", "tibiaSurface");
-		m_RealtimeCutPlaneCheck = false;
-	}
-
-	// 3.2 计算截骨深度
+	// 3.1 计算截骨深度
 	if (m_RealtimeCutCheck == true)
 	{
-		// 取出实时截骨面的前端点位置
+		// 取出实时摆锯面的前端点位置
 		auto tmpNodes = GetDataStorage()->GetNamedNode("pointSetInRealPlaneAxial");
 		if (tmpNodes) {
-			// 获取数据
-			mitk::Point3D point1 = dynamic_cast<mitk::PointSet*>(tmpNodes->GetData())->GetPoint(1);
-			mitk::Point3D point2 = dynamic_cast<mitk::PointSet*>(tmpNodes->GetData())->GetPoint(2);
+			// 获取数据 - 1前端左侧 2前端右侧
+			//  2------------------------
+			//  |
+			//  0
+			//  |
+			//  1------------------------
+			// 取出当前摆锯前端点
+			mitk::Point3D current_point1 = dynamic_cast<mitk::PointSet*>(tmpNodes->GetData())->GetPoint(1);
+			mitk::Point3D current_point2 = dynamic_cast<mitk::PointSet*>(tmpNodes->GetData())->GetPoint(2);
+			// 计算摆锯当前的截骨深度
+			double point_mid[3];
+			point_mid[0] = (current_point1[0] + current_point2[0]) / 2;
+			point_mid[1] = (current_point1[1] + current_point2[1]) / 2;
+			point_mid[2] = (current_point1[2] + current_point2[2]) / 2;
 
-			// 计算截骨深度，点到直线的距离
-			double front2Min, front2Max;
-			double pos_FrontLeft[3], pos_FrontRight[3];
-			pos_FrontLeft[0] = point1[0];
-			pos_FrontLeft[1] = point1[1];
-			pos_FrontLeft[2] = point1[2];
+			// 取出规划截骨位置前端点
+			mitk::Point3D set_point1_tmp = mitkPointSet1->GetPoint(2);
+			mitk::Point3D set_point2_tmp = mitkPointSet1->GetPoint(3);
 
-			pos_FrontRight[0] = point2[0];
-			pos_FrontRight[1] = point2[1];
-			pos_FrontRight[2] = point2[2];
+			double set_point1[3], set_point2[3];
+			set_point1[0] = set_point1_tmp[0];
+			set_point1[1] = set_point1_tmp[1];
+			set_point1[2] = set_point1_tmp[2];
 
-			// 得到点线距离
-			front2Min = DistancePointToLine(pos_FrontLeft, m_CutIntersectionMinPos, m_CutIntersectionMaxPos);
-			front2Max = DistancePointToLine(pos_FrontRight, m_CutIntersectionMaxPos, m_CutIntersectionMaxPos);
+			set_point2[0] = set_point2_tmp[0];
+			set_point2[1] = set_point2_tmp[1];
+			set_point2[2] = set_point2_tmp[2];
 
-			// 依据点坐标来进行判别输出
-			if (pos_FrontLeft[0] > m_CutIntersectionMinPos[0] && pos_FrontLeft[0] < m_CutIntersectionMaxPos[0])
+
+			// 计算点线距离 C->AB, DistancePointToLine(A,B,C)
+			// 计算当前距离末端距离
+			double current_left_distence = DistancePointToLine(set_point1, set_point1, point_mid);
+
+			// 取出规划点的最近点
+			auto set_Minpoint_tmp = GetDataStorage()->GetNamedNode("planeAndTibiaIntersectionPoint");
+			mitk::Point3D set_MinPoint = dynamic_cast<mitk::PointSet*>(set_Minpoint_tmp->GetData())->GetPoint(0);
+			double MinPoint[3];
+			MinPoint[0] = set_MinPoint[0];
+			MinPoint[1] = set_MinPoint[1];
+			MinPoint[2] = set_MinPoint[2];
+
+			// 计算点线距离 C->AB, DistancePointToLine(A,B,C)
+			// 计算实际深度规划值
+			double set_distence = DistancePointToLine(set_point1, set_point1, MinPoint);
+
+			double current_distence = set_distence - current_left_distence;
+
+			m_Controls.label_setCutDepth->setText(QString::number(set_distence) + " mm");
+			m_Controls.label_currentCutDepth->setText(QString::number(current_distence) + " mm");
+			m_Controls.label_current2end->setText(QString::number(current_left_distence) + " mm");
+
+			// 判断摆锯的位置
+			// current_distence < 0 表示摆锯还没有开始截骨
+			if (current_distence < 0)
 			{
-				/* 锯片前端出于胫骨内部 */
-				m_Controls.textBrowser_AxialCut02->setText("Current Cut Depth: " + QString::number(front2Min));
-
-				// 进行截骨阈值判断
-				if (m_threshold_SawDepth - front2Min >= 0.2)
-				{
-					m_Controls.textBrowser_AxialCut03->setText("State: Safe");
-				}
-				else if (m_threshold_SawDepth - front2Min >= 0 && m_threshold_SawDepth - front2Min < 0.2)
-				{
-					m_Controls.textBrowser_AxialCut03->setText("State: Warning!");
-				}
+				m_Controls.textBrowser_DepthGuide_2->append("Current Saw not there yet.");
+				m_Controls.label_cutState->setText("Not yet");
 			}
-			else if (pos_FrontLeft[0] < m_CutIntersectionMinPos[0])
+			else if(current_distence > set_distence)
 			{
-				/* 锯片前端未抵达胫骨 */
-				m_Controls.textBrowser_AxialCut02->setText("Current Cut Depth: 0, Current Distance From SawFront to Tibia: " + QString::number(front2Min));
-			}
-			else if (pos_FrontLeft[0] > m_CutIntersectionMaxPos[0])
-			{
-				/* 锯片前端磨穿达胫骨 */
-				m_Controls.textBrowser_AxialCut03->setText("State: Saw System Off.");
+				m_Controls.textBrowser_DepthGuide_2->append("Current Saw beyond the osteotomy area.");
+				m_Controls.label_cutState->setText("Shout Down");
+				m_Controls.label_sawPower->setText("Power OFF");
 				m_SawPower = false;
+			}
+			else
+			{
+				m_Controls.textBrowser_DepthGuide_2->append("Current Saw is cutting.");
+				m_Controls.label_cutState->setText("Safe");
 			}
 		}
 		else {
@@ -966,15 +1029,15 @@ void  HTONDI::UpdateHTOSaw02()
 		}
 	}
 
-	// 3.3 模拟截骨
+	// 3.3 电源控制
 	if (m_SawPower == true)
 	{
-		// 电源于开启状态则进行截骨模拟
-		// TestCut
+		m_Controls.label_sawPower->setText("Power ON");
 	}
-
-
-
+	else 
+	{
+		m_Controls.label_sawPower->setText("Power OFF");
+	}
 	cout << "refresh" << endl;
 }
 
@@ -992,7 +1055,6 @@ bool HTONDI::OnStartAxialGuideClicked()
 	*/
 
 	m_Controls.textBrowser_Action->append("Action: Start Axial Cut Guide.");
-	m_cutType = 1;
 
 	// 1. 显示规划的截骨面 + 显示实时截骨面位置
 	auto preCutPlane01 = GetDataStorage()->GetNamedNode("1st cut plane");
@@ -1480,12 +1542,29 @@ bool HTONDI::OnStartAxialCutClicked()
 	*/
 
 	// 开始水平截骨，启动摆锯，启动截骨导航
-	m_Controls.textBrowser_Action->append("Action: Turn On Saw Power.");
+	m_Controls.textBrowser_Action->append("Action: Start Saw Cut.");
 
 	// 1. 改变导航状态
 	m_RealtimeAngleCheck = false;
+	AngleCheck_type = 0;
 	m_RealtimeCutCheck = true;
 	m_SawPower = true;
+
+	m_Controls.label_sawPower->setText("Power ON");
+
+	return true;
+}
+
+bool HTONDI::OnStopAxialCutClicked()
+{
+	// 完成水平截骨，关闭摆锯电源
+	m_Controls.textBrowser_Action->append("Action: Stop Saw Cut.");
+
+	// 1. 改变导航状态
+	m_RealtimeCutCheck = true;
+	m_SawPower = false;
+
+	m_Controls.label_sawPower->setText("Power OFF.");
 
 	return true;
 }
@@ -1736,7 +1815,7 @@ bool HTONDI::OnStartStateAxialCutClicked()
 	}
 
 	// 输出夹角到实际的位置
-	m_Controls.textBrowser_AxialCut->append("Real time Angle Miss: " + QString::number(angleInDegrees));
+	m_Controls.label_CutPlaneAngle->setText("Real time Angle Miss: " + QString::number(angleInDegrees));
 
 	GetDataStorage()->Modified();
 	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
@@ -1754,19 +1833,27 @@ bool HTONDI::OnCheckStateCutClicked()
 
 bool HTONDI::OnStartSagGuideClicked()
 {
-	/* 确定水平截骨面位置	*/
-	m_Controls.textBrowser_Action->append("Action: Check State Cut Plane.");
-	m_cutType = 2;
+	/* 开始上升截骨导航 
+		1. 首先进行和水平面的角度验证
+		要求摆锯紧贴克式钉
+	*/
+	m_Controls.textBrowser_Action->append("Action: Start Sag Cut Plane Check.");
+
+	// 改变上升截骨夹角计算 + 显示两个预设平面
+
 
 	// 1. 显示规划的截骨面 + 显示实时截骨面位置
-	auto preCutPlane01 = GetDataStorage()->GetNamedNode("2nd cut plane");
+	auto preCutPlane01 = GetDataStorage()->GetNamedNode("1st cut plane");
+	auto preCutPlane02 = GetDataStorage()->GetNamedNode("2nd cut plane");
+	auto realTimeSawPlane = GetDataStorage()->GetNamedNode("CurrentCutPlane01");
 	auto realTimeSaw = GetDataStorage()->GetNamedNode("Saw");
-
-	// 检测数据存在，然后打开截骨导航
-	if (preCutPlane01 && realTimeSaw)
+	if (preCutPlane01 && preCutPlane02 && realTimeSaw)
 	{
 		preCutPlane01->SetVisibility(true);
+		preCutPlane02->SetVisibility(true);
+		realTimeSawPlane->SetVisibility(true);
 		realTimeSaw->SetVisibility(true);
+
 	}
 	else
 	{
@@ -1774,19 +1861,22 @@ bool HTONDI::OnStartSagGuideClicked()
 		return false;
 	}
 
-	// 对Saw生成实时截骨平面
-	if (m_HTOSawUpdateTimer == nullptr)
-	{
-		m_HTOSawUpdateTimer = new QTimer(this);
-	}
-	m_Controls.textBrowser_Action->append("Generate Real time Cut plane");
+	// 角度导航 + 开始上升截骨导航
+	m_RealtimeAngleCheck = true;
+	AngleCheck_type = 1;
+	m_RealtimeCutCheck = false;
+	m_SawPower = false;
 
-	disconnect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw02()));
-	connect(m_HTOSawUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOSaw02()));
-	m_HTOSawUpdateTimer->start(100);
+	m_Controls.label_sawPower->setText("Power ON");
 
+	return true;
+}
 
-
+bool HTONDI::OnSetSagCutClicked()
+{
+	/* 确认上升截骨 */
+	m_Controls.textBrowser_Action->append("Action: Set Sag Cut Plane.");
+	check_sagCut = true;
 
 	return true;
 }
@@ -2011,25 +2101,34 @@ bool HTONDI::OnStartStateSagCutClicked()
 	}
 
 	// 输出夹角到实际的位置
-	m_Controls.textBrowser_SagCut->append("Real time Angle Miss: " + QString::number(angleInDegrees));
+	m_Controls.label_CutPlaneAngle2Sag->setText(QString::number(angleInDegrees));
 
 	GetDataStorage()->Modified();
 	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
-	return true;
-
-
 	return true;
 }
 
 bool HTONDI::OnStartSagCutClicked()
 {
 	/* 启动上升截骨
-	1. 改变摆锯截骨状态
-	2. 计算实时 截骨深度
-	3. 进行截骨保护
+		1. 改变摆锯截骨状态
+	上升截骨不需要深度导航
 	*/
-
 	m_Controls.textBrowser_Action->append("Action: Check Drill Node.");
+
+	// 打开电源
+	m_SawPower = true;
+
+	return true;
+}
+
+
+bool HTONDI::OnEndSagCutClicked()
+{
+	/* 完成上升截骨 */
+	m_Controls.textBrowser_Action->append("Action: End Sag Cut.");
+
+	m_SawPower = false;
 
 	return true;
 }
@@ -2495,3 +2594,59 @@ bool HTONDI::OnStartAngleCheckClicked()
 	return true;
 }
 
+bool HTONDI::OnSetAxialCutClicked()
+{
+	/* 确定水平位置 */
+	m_Controls.textBrowser_Action->append("Action: Set Axial Cut Plane.");
+
+	// 确认状态
+	bool check_axialCut = true;
+
+	return true;
+}
+
+
+
+// 术中力线
+bool HTONDI::OnCheckCutResultClicked()
+{
+	/* 确定水平位置 */
+	m_Controls.textBrowser_Action->append("Action: Check Cut Result.");
+
+	return true;
+}
+
+bool HTONDI::OnGenerateCutSurfaceClicked()
+{
+	/* 进行模型分割 */
+	m_Controls.textBrowser_Action->append("Action: Generate Cut Surface.");
+	return true;
+}
+
+bool HTONDI::OnStartCutAngleGuideClicked()
+{
+	/* 术中力线导航 */
+	m_Controls.textBrowser_Action->append("Action: Start Cut Angle Guide.");
+	return true;
+}
+
+bool HTONDI::OnForceLineCaculate03Clicked()
+{
+	/* 计算术中力线在胫骨平台占比 */
+	m_Controls.textBrowser_Action->append("Action: Force Line Caculate.");
+	return true;
+}
+
+bool HTONDI::OnForceLineVisulizeClicked()
+{
+	/* 术中力线可视化 */
+	m_Controls.textBrowser_Action->append("Action: Force Line Visulize.");
+	return true;
+}
+
+bool HTONDI::OnSetSteelClicked()
+{
+	/* 确认钢板位置 */
+	m_Controls.textBrowser_Action->append("Action: Set Steel.");
+	return true;
+}

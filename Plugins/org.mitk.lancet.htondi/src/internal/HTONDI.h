@@ -191,17 +191,27 @@ public slots:
 	// 获取实时信息
 	void GenerateRealTimeBoneSurface();
 
+	// 开始摆锯导航
 	bool OnStartAxialGuideClicked();
-	bool OnStartAxialCutClicked();
-	bool OnStartStateAxialCutClicked();
-	bool OnCheckStateCutClicked();
-
 	bool OnStartAngleCheckClicked();
+	bool OnSetAxialCutClicked();
+	// 水平截骨
+	bool OnStartAxialCutClicked();
+	bool OnStopAxialCutClicked();
 
+	// 上升截骨
 	bool OnStartSagGuideClicked();
+	bool OnSetSagCutClicked();
 	bool OnStartSagCutClicked();
+	bool OnEndSagCutClicked();
+
+	// 静态
+	bool OnCheckStateCutClicked();
+	bool OnStartStateAxialCutClicked();
 	bool OnStartStateSagCutClicked();
 
+	
+	// 磨钻导航
 	bool OnStartDrillGuideClicked();
 	bool OnStartDrillHoleClicked();
 	bool OnStartStateDrillHoleClicked();
@@ -223,6 +233,16 @@ public slots:
 	bool OnSetLink03Clicked();
 
 	bool OnFinishCurrentDrillClicked();
+
+	// 术中力线验证
+	bool OnCheckCutResultClicked();
+	bool OnGenerateCutSurfaceClicked();
+	bool OnStartCutAngleGuideClicked();
+
+	bool OnForceLineCaculate03Clicked();
+	bool OnForceLineVisulizeClicked();
+
+	bool OnSetSteelClicked();
 
 	// =================================================================
 	
@@ -593,6 +613,7 @@ protected:
   bool start_saw = false;
   
   bool m_RealtimeAngleCheck = false;
+  int AngleCheck_type = -1;
   // 计算初始化截骨面的截骨线
   bool m_RealtimeCutCheck = false;
   bool m_RealtimeCutPlaneCheck = false;
@@ -652,6 +673,9 @@ protected:
   // 记录当前选中drill模型index
   // 0 1 Keshi, 2 3 4 LinkPin, -1 无
   int Drill_DepthType = -1;
+
+  bool check_axialCut = false;
+  bool check_sagCut = false;
 
   Ui::HTONDIControls m_Controls;
 };

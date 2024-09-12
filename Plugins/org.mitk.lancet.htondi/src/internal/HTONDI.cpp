@@ -244,18 +244,18 @@ void HTONDI::CreateQT_MoveData()
 	connect(m_Controls.pushButton_rzm, &QPushButton::clicked, this, &HTONDI::RotateMinusZ);
 
 	// 术中导航 物体运动
-	connect(m_Controls.pushButton_xp_2, &QPushButton::clicked, this, &HTONDI::TranslatePlusX2);
-	connect(m_Controls.pushButton_yp_2, &QPushButton::clicked, this, &HTONDI::TranslatePlusY2);
-	connect(m_Controls.pushButton_zp_2, &QPushButton::clicked, this, &HTONDI::TranslatePlusZ2);
-	connect(m_Controls.pushButton_xm_2, &QPushButton::clicked, this, &HTONDI::TranslateMinusX2);
-	connect(m_Controls.pushButton_ym_2, &QPushButton::clicked, this, &HTONDI::TranslateMinusY2);
-	connect(m_Controls.pushButton_zm_2, &QPushButton::clicked, this, &HTONDI::TranslateMinusZ2);
-	connect(m_Controls.pushButton_rxp_2, &QPushButton::clicked, this, &HTONDI::RotatePlusX2);
-	connect(m_Controls.pushButton_ryp_2, &QPushButton::clicked, this, &HTONDI::RotatePlusY2);
-	connect(m_Controls.pushButton_rzp_2, &QPushButton::clicked, this, &HTONDI::RotatePlusZ2);
-	connect(m_Controls.pushButton_rxm_2, &QPushButton::clicked, this, &HTONDI::RotateMinusX2);
-	connect(m_Controls.pushButton_rym_2, &QPushButton::clicked, this, &HTONDI::RotateMinusY2);
-	connect(m_Controls.pushButton_rzm_2, &QPushButton::clicked, this, &HTONDI::RotateMinusZ2);
+	//connect(m_Controls.pushButton_xp_2, &QPushButton::clicked, this, &HTONDI::TranslatePlusX2);
+	//connect(m_Controls.pushButton_yp_2, &QPushButton::clicked, this, &HTONDI::TranslatePlusY2);
+	//connect(m_Controls.pushButton_zp_2, &QPushButton::clicked, this, &HTONDI::TranslatePlusZ2);
+	//connect(m_Controls.pushButton_xm_2, &QPushButton::clicked, this, &HTONDI::TranslateMinusX2);
+	//connect(m_Controls.pushButton_ym_2, &QPushButton::clicked, this, &HTONDI::TranslateMinusY2);
+	//connect(m_Controls.pushButton_zm_2, &QPushButton::clicked, this, &HTONDI::TranslateMinusZ2);
+	//connect(m_Controls.pushButton_rxp_2, &QPushButton::clicked, this, &HTONDI::RotatePlusX2);
+	//connect(m_Controls.pushButton_ryp_2, &QPushButton::clicked, this, &HTONDI::RotatePlusY2);
+	//connect(m_Controls.pushButton_rzp_2, &QPushButton::clicked, this, &HTONDI::RotatePlusZ2);
+	//connect(m_Controls.pushButton_rxm_2, &QPushButton::clicked, this, &HTONDI::RotateMinusX2);
+	//connect(m_Controls.pushButton_rym_2, &QPushButton::clicked, this, &HTONDI::RotateMinusY2);
+	//connect(m_Controls.pushButton_rzm_2, &QPushButton::clicked, this, &HTONDI::RotateMinusZ2);
 }
 
 
@@ -421,39 +421,49 @@ void HTONDI::CreateQT_MidOperation()
 	connect(m_Controls.pushButton_setKeShi02, &QPushButton::clicked, this, &HTONDI::OnSetKeShi02Clicked);
 
 	connect(m_Controls.pushButton_finishCurrent, &QPushButton::clicked, this, &HTONDI::OnFinishCurrentDrillClicked);
-
+	// 钢板安装导航
+	connect(m_Controls.guideDrill_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartDrillGuideClicked);
+	connect(m_Controls.startDrill_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartDrillHoleClicked);
 	
 
 	// 2. 截骨导航
-	// 水平截骨
+	
+	// 2.1 角度验证
 	connect(m_Controls.guideAxialCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartAxialGuideClicked);
-	connect(m_Controls.startAxialCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartAxialCutClicked);
-	// 生成静态水平截骨平面
+	connect(m_Controls.pushButton_startAngleCheck, &QPushButton::clicked, this, &HTONDI::OnStartAngleCheckClicked);
+	connect(m_Controls.startAxialCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnSetAxialCutClicked);
+
+	// 2.2 水平截骨控制
+	connect(m_Controls.pushButton_startAxialCut, &QPushButton::clicked, this, &HTONDI::OnStartAxialCutClicked);
+	connect(m_Controls.pushButton_stopAxialCut, &QPushButton::clicked, this, &HTONDI::OnStopAxialCutClicked);
+	// 静态模拟
 	connect(m_Controls.generateAxialCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartStateAxialCutClicked);
-	// 确定水平截骨平面位置
 	connect(m_Controls.checkAxialCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnCheckStateCutClicked);
 	
-	connect(m_Controls.pushButton_startAngleCheck, &QPushButton::clicked, this, &HTONDI::OnStartAngleCheckClicked);
-
-
-	// 上升截骨
+	// 2.3 上升截骨控制
 	connect(m_Controls.guideSagCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartSagGuideClicked);
+	connect(m_Controls.setSagCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnSetSagCutClicked);
 	connect(m_Controls.startSagCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartSagCutClicked);
-	// 生成静态上升截骨平面
+	connect(m_Controls.endSagCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnEndSagCutClicked);
+	// 静态模拟
 	connect(m_Controls.generateSagCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartStateSagCutClicked);
-	// 确定上升截骨平面位置
 	connect(m_Controls.checkAxialCut_pushButton, &QPushButton::clicked, this, &HTONDI::OnCheckStateCutClicked);
-
-
-
-	// 3. 钢板安装导航
-	connect(m_Controls.guideDrill_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartDrillGuideClicked);
-	connect(m_Controls.startDrill_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartDrillHoleClicked);
 
 
 	// 3. 术中力线验证
+	// 3.1 术中模型截骨 + 撑开导航
+	connect(m_Controls.checkCutResult_pushButton, &QPushButton::clicked, this, &HTONDI::OnCheckCutResultClicked);
+	connect(m_Controls.generateCutSurface_pushButton, &QPushButton::clicked, this, &HTONDI::OnGenerateCutSurfaceClicked);
+	connect(m_Controls.startCutAngleGuide_pushButton, &QPushButton::clicked, this, &HTONDI::OnStartCutAngleGuideClicked);
 
+	// 3.2 术中力线显示
+	connect(m_Controls.forceLineCaculate03_pushButton, &QPushButton::clicked, this, &HTONDI::OnForceLineCaculate03Clicked);
+	connect(m_Controls.forceLineVisulize_pushButton, &QPushButton::clicked, this, &HTONDI::OnForceLineVisulizeClicked);
 
+	// 3.3 钢板固定确认
+	connect(m_Controls.setSteelPos_pushButton, &QPushButton::clicked, this, &HTONDI::OnSetSteelClicked);
+
+	
 }
 
 void HTONDI::CreateQT_PostoperativeValid()
