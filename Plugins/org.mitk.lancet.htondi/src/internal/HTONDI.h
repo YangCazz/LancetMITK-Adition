@@ -112,7 +112,10 @@ public slots:
 
 	// 撑开角度计划
 	bool OnCaculateStrechAngleClicked();
+	bool OnCaculateStrechAngleClicked02();
 	bool OnResetAngleClicked();
+	bool OnsetAngleLineClicked();
+
 	// 旋转截骨远端
 	void RotateMinus();
 	void RotatePlus();
@@ -221,6 +224,8 @@ public slots:
 
 	void UpdateHTOSaw02();
 	void UpdateHTODrill02();
+
+	void UpdateHTOFemur();
 
 	bool OnChangeKeShiPinClicked();
 	bool OnChangeLinkPinClicked();
@@ -451,6 +456,7 @@ protected:
   // 力线占比计算和更新
   void updateProportation();
   void updateProportation02();
+  void updateProportation03();
   // 计算两个线段的交点
   bool LineLineIntersection(Eigen::Vector2d& intersection, Eigen::Vector2d p1, Eigen::Vector2d p2, Eigen::Vector2d q1, Eigen::Vector2d q2);
   // 计算高度
@@ -587,6 +593,7 @@ protected:
   QTimer* m_HTOPrboeUpdateTimer{ nullptr };
   QTimer* m_HTOSawUpdateTimer{ nullptr };
   QTimer* m_HTODrillUpdateTimer{ nullptr };
+  QTimer* m_HTOFemurUpdateTimer{ nullptr };
 
   // HTO registration optimization
   // 胫骨近端外侧点 胫骨近端内侧点 胫骨远端外踝点 胫骨远端内踝点
@@ -676,6 +683,26 @@ protected:
 
   bool check_axialCut = false;
   bool check_sagCut = false;
+  bool check_cutPlane = false;
+
+  bool CutTibiaWithTwoPlanes02();
+
+  // 左腿的转轴是 3->2, a3 b2
+  // 右腿的转轴是 0->1, a0 b1
+  Eigen::Vector4d point_a_femurRF;
+  Eigen::Vector4d point_b_femurRF;
+
+  Eigen::Vector4d point_a_femurRF_current;
+  Eigen::Vector4d point_b_femurRF_current;
+
+  Eigen::Vector4d point_a_tibiaRF;
+  Eigen::Vector4d point_b_tibiaRF;
+
+  // 保存力线占比和掰开角度
+  double line_set, angle_set;
+
+  // 计算合页旋转角
+  double calculateAngle(Eigen::Vector2d A, Eigen::Vector2d C, Eigen::Vector2d B1, Eigen::Vector2d direction);
 
   Ui::HTONDIControls m_Controls;
 };

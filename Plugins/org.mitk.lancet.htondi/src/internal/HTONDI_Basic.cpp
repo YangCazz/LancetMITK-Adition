@@ -824,3 +824,68 @@ std::vector<Eigen::Vector3d> HTONDI::InsectionLine2Surface(vtkSmartPointer<vtkPo
 
 	return nodes;
 }
+
+// 计算规划截骨的夹角
+double HTONDI::calculateAngle(Eigen::Vector2d A, Eigen::Vector2d C, Eigen::Vector2d B1, Eigen::Vector2d direction) {
+	/* 规划截骨面的撑开角度计算
+	* 
+	* 输入: 点A C B1点的坐标, A到B2的方向向量
+	* 输出: CB1和CB2的夹角
+	* 这个夹角也就是规划截骨面的夹角
+	* 场景：
+	*   在投影平面上有A、C、B1、B2四个点，除了B2点之外的所有点坐标已知，同时已知A到B2的方向向量，
+	*   并且CB1和CB2的长度相同，现在求CB1和CB2的夹角
+	* 
+	*/
+
+	// 计算CB1的长度
+	double L = (B1 - C).norm();
+	cout << "L = " << L << endl;
+
+	// 计算二次方程的系数
+	double a = direction.dot(direction);
+	double b = 2 * direction.dot(A - C);
+	double c = (A - C).squaredNorm() - L * L;
+	cout << "a = " << a << endl;
+	cout << "b = " << b << endl;
+	cout << "c = " << c << endl;
+
+	// 解二次方程
+	double discriminant = b * b - 4 * a * c;
+	if (discriminant < 0) {
+		cout << "No real solution for t." << endl;
+		return -1;
+	}
+
+	double t1 = (-b + sqrt(discriminant)) / (2 * a);
+	double t2 = (-b - sqrt(discriminant)) / (2 * a);
+	cout << "t1 = " << t1 << endl;
+	cout << "t2 = " << t2 << endl;
+
+	// 选择一个合理的 t 值
+	double t = (t1 < t2) ? t1 : t2;
+	cout << "t = " << t << endl;
+
+	// 计算B2的坐标
+	Eigen::Vector2d B2 = A + t * direction;
+	cout << "B2: (" << B2[0] << ", " << B2[1] << ") " << endl;
+
+
+
+	// 计算向量CB1和CB2
+	Eigen::Vector2d CB1 = B1 - C;
+	Eigen::Vector2d CB2 = B2 - C;
+	CB1.normalize();
+	CB2.normalize();
+	cout << "CB1: (" << CB1[0] << ", " << CB1[1] << ") " << endl;
+	cout << "CB2: (" << CB2[0] << ", " << CB2[1] << ") " << endl;
+
+	// 计算点积
+	double dotProduct = CB1.dot(CB2);
+	cout << "dotProduct = " << dotProduct << endl;
+	// 计算夹角
+	double angleInDegrees = acos(dotProduct);
+	cout << "angleInDegrees = " << angleInDegrees << endl;
+
+	return angleInDegrees;
+}

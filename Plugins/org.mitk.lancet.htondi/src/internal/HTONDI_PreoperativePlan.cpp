@@ -930,6 +930,151 @@ bool HTONDI::CutTibiaWithTwoPlanes()
 	return true;
 }
 
+bool HTONDI::CutTibiaWithTwoPlanes02()
+{
+	m_Controls.textBrowser_Action->append("Cutting with two plane");
+	// 同时使用两个平面进行截骨
+	auto cutplane_0 = GetDataStorage()->GetNamedNode("1st cut plane");
+	auto cutplane_1 = GetDataStorage()->GetNamedNode("2nd cut plane");
+	auto tibiaNode = GetDataStorage()->GetNamedNode("tibiaSurface");
+
+	// 检查是否存在所需要的数据
+	if (cutplane_0 == nullptr || cutplane_1 == nullptr)
+	{
+		m_Controls.textBrowser_Action->append("'1st cut plane' or '2nd cut plane' is not ready");
+		return false;
+	}
+	if (tibiaNode == nullptr)
+	{
+		m_Controls.textBrowser_Action->append("'tibiaSurface' is not ready");
+		return false;
+	}
+
+	auto mitkCutPlane_0 = dynamic_cast<mitk::Surface*>(cutplane_0->GetData());
+	auto mitkCutPlane_1 = dynamic_cast<mitk::Surface*>(cutplane_1->GetData());
+	auto mitkTibia = dynamic_cast<mitk::Surface*>(tibiaNode->GetData());
+
+	vtkNew<vtkPolyData> vtkCutPlane_0;
+	vtkNew<vtkPolyData> vtkCutPlane_1;
+	vtkNew<vtkPolyData> vtkTibia;
+
+	// 截骨面- Axial
+	vtkNew<vtkTransform> cutPlaneTransform_0;
+	cutPlaneTransform_0->SetMatrix(mitkCutPlane_0->GetGeometry()->GetVtkMatrix());
+	vtkNew<vtkTransformFilter> cutPlaneTransformFilter_0;
+	cutPlaneTransformFilter_0->SetTransform(cutPlaneTransform_0);
+	cutPlaneTransformFilter_0->SetInputData(mitkCutPlane_0->GetVtkPolyData());
+	cutPlaneTransformFilter_0->Update();
+	vtkCutPlane_0->DeepCopy(cutPlaneTransformFilter_0->GetPolyDataOutput());
+
+	// 截骨面- Sag
+	vtkNew<vtkTransform> cutPlaneTransform_1;
+	cutPlaneTransform_1->SetMatrix(mitkCutPlane_1->GetGeometry()->GetVtkMatrix());
+	vtkNew<vtkTransformFilter> cutPlaneTransformFilter_1;
+	cutPlaneTransformFilter_1->SetTransform(cutPlaneTransform_1);
+	cutPlaneTransformFilter_1->SetInputData(mitkCutPlane_1->GetVtkPolyData());
+	cutPlaneTransformFilter_1->Update();
+	vtkCutPlane_1->DeepCopy(cutPlaneTransformFilter_1->GetPolyDataOutput());
+
+	// 骨表面
+	vtkNew<vtkTransform> tibiaTransform;
+	tibiaTransform->SetMatrix(mitkTibia->GetGeometry()->GetVtkMatrix());
+	vtkNew<vtkTransformFilter> tibiaTransformFilter;
+	tibiaTransformFilter->SetTransform(tibiaTransform);
+	tibiaTransformFilter->SetInputData(mitkTibia->GetVtkPolyData());
+	tibiaTransformFilter->Update();
+	vtkTibia->DeepCopy(tibiaTransformFilter->GetPolyDataOutput());
+
+	// 获取两个截骨面的法向量和平面中心
+	double cutPlaneCenter_0[3];
+	double cutPlaneNormal_0[3];
+	double cutPlaneCenter_1[3];
+	double cutPlaneNormal_1[3];
+	GetPlaneProperty(vtkCutPlane_0, cutPlaneNormal_0, cutPlaneCenter_0);
+	GetPlaneProperty(vtkCutPlane_1, cutPlaneNormal_1, cutPlaneCenter_1);
+
+	vtkNew<vtkPolyData> largetPart;
+	vtkNew<vtkPolyData> tmpMiddlePart;
+	vtkNew<vtkPolyData> middlePart;
+	vtkNew<vtkPolyData> smallPart;
+
+	// Part01: 先使用Axial截骨，达到 A-大-小 两个部分
+	// Part02: 取出 A-小，再用Sag截骨，得到 S-大-小 两个部分
+	// Part03: 合并 S-小 和 A-大，最后库中为 A-大 + S-大
+
+	// Part01:
+	CutPolyDataWithPlane(vtkTibia, largetPart, tmpMiddlePart, cutPlaneCenter_0, cutPlaneNormal_0);
+	// Part02:
+	CutPolyDataWithPlane(tmpMiddlePart, middlePart, smallPart, cutPlaneCenter_1, cutPlaneNormal_1);
+
+	// Part03
+	vtkSmartPointer<vtkAppendPolyData> appendFilter =
+		vtkSmartPointer<vtkAppendPolyData>::New();
+	vtkSmartPointer<vtkCleanPolyData> cleanFilter =
+		vtkSmartPointer<vtkCleanPolyData>::New();
+
+	// 合并 A-大 和 S-小
+	appendFilter->AddInputData(largetPart);
+	appendFilter->AddInputData(smallPart);
+	appendFilter->Update();
+
+	cleanFilter->SetInputData(appendFilter->GetOutput());
+	cleanFilter->Update();
+
+	auto proximalSurface = mitk::Surface::New();
+	auto distalSurface = mitk::Surface::New();
+
+	proximalSurface->SetVtkPolyData(middlePart);
+	distalSurface->SetVtkPolyData(cleanFilter->GetOutput());
+
+	//auto proximal_remehsed = mitk::Remeshing::Decimate(proximalSurface, 1, true, true);
+	//auto distal_remehsed = mitk::Remeshing::Decimate(distalSurface, 1, true, true);
+
+	// 检查是否存在
+	auto checktmp01 = GetDataStorage()->GetNamedNode("proximal tibiaSurface02");
+	if (checktmp01)
+	{
+		GetDataStorage()->Remove(GetDataStorage()->GetNamedNode("proximal tibiaSurface02"));
+	}
+	// 检查是否存在
+	auto checktmp02 = GetDataStorage()->GetNamedNode("distal tibiaSurface");
+	if (checktmp02)
+	{
+		GetDataStorage()->Remove(GetDataStorage()->GetNamedNode("distal tibiaSurface02"));
+	}
+	// 新建
+
+	auto proximalNode = mitk::DataNode::New();
+	auto distalNode = mitk::DataNode::New();
+
+	proximalNode->SetName("proximal tibiaSurface02");
+	proximalNode->SetData(proximalSurface);
+	proximalNode->SetColor(0, 1, 0);
+
+	distalNode->SetName("distal tibiaSurface02");
+	distalNode->SetData(distalSurface);
+	//distalNode->SetColor(0,0,1);
+
+	GetDataStorage()->Add(distalNode);
+	GetDataStorage()->Add(proximalNode);
+
+	// 设置原有的胫骨为不可见
+	mitk::DataNode::Pointer tibiaSurface = GetDataStorage()->GetNamedNode("tibiaSurface");
+	if (tibiaSurface.IsNotNull())
+	{
+		// 切换下肢力线节点的可见性
+		tibiaSurface->SetVisibility(false);
+	}
+
+	GetDataStorage()->Modified();
+	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
+
+	return true;
+}
+
+
+
+
 bool HTONDI::GetPlaneProperty(vtkSmartPointer<vtkPolyData> plane, double normal[3], double center[3])
 {
 	/* 计算平面的法向量
@@ -1166,6 +1311,116 @@ bool HTONDI::OnSetFinalPosClick()
 	return true;
 }
 
+bool HTONDI::OnCaculateStrechAngleClicked02()
+{
+	/* 采用投影计算的方法 */
+	m_Controls.textBrowser_Action->append("Action: Caculate the Angel.");
+
+	// 获取股骨中心点、胫骨平台中点
+	cout << "test 01" << endl;
+	mitk::DataNode::Pointer hipCenter = GetDataStorage()->GetNamedNode("hipCenterPoint");
+	auto hipCenterPointSet = dynamic_cast<mitk::PointSet*>(hipCenter->GetData());
+	// 进行格式转化
+	mitk::Point3D hipCenterPoint = hipCenterPointSet->GetPoint(0);
+
+	// 获取胫骨踝点集
+	mitk::DataNode::Pointer tibiaLandmarkNode = GetDataStorage()->GetNamedNode("tibiaLandmarkPointSet");
+	auto tibiaLandmarkPointSet = dynamic_cast<mitk::PointSet*>(tibiaLandmarkNode->GetData());
+
+	// 获取第一和第二个点
+	mitk::Point3D tibiaProximalLateralPoint = tibiaLandmarkPointSet->GetPoint(0);
+	mitk::Point3D tibiaProximalMedialPoint = tibiaLandmarkPointSet->GetPoint(1);
+	// 计算胫骨近端(胫骨平台中心)的中心点
+	mitk::Point3D tibiaProximalCenterPoint;
+	tibiaProximalCenterPoint[0] = (tibiaProximalLateralPoint[0] + tibiaProximalMedialPoint[0]) / 2;
+	tibiaProximalCenterPoint[1] = (tibiaProximalLateralPoint[1] + tibiaProximalMedialPoint[1]) / 2;
+	tibiaProximalCenterPoint[2] = (tibiaProximalLateralPoint[2] + tibiaProximalMedialPoint[2]) / 2;
+
+	// 获取第三和第四个点
+	mitk::Point3D tibiaDistalLateralPoint = tibiaLandmarkPointSet->GetPoint(0);
+	mitk::Point3D tibiaDistalMedialPoint = tibiaLandmarkPointSet->GetPoint(1);
+	// 计算胫骨远端(踝关节)的中心点
+	mitk::Point3D AnkleCentePoint;
+	AnkleCentePoint[0] = (tibiaDistalLateralPoint[0] + tibiaDistalMedialPoint[0]) / 2;
+	AnkleCentePoint[1] = (tibiaDistalLateralPoint[1] + tibiaDistalMedialPoint[1]) / 2;
+	AnkleCentePoint[2] = (tibiaDistalLateralPoint[2] + tibiaDistalMedialPoint[2]) / 2;
+
+	
+	// 获取合页点
+	/* 
+	* 
+	* 0	----4----3
+	* |		   	 |
+	* 1----------2
+	* 
+	*/
+	mitk::PointSet::Pointer rotateTibia_tmp = mitkPointSet1;
+
+	// 将所有点映射到冠状面(y=0)
+	Eigen::Vector2d A, B1, C, D, direction;
+	// 赋值股骨头中心为A
+	A[0] = hipCenterPoint[0];
+	A[1] = hipCenterPoint[2];
+	// 赋值踝关节中心为B
+	B1[0] = AnkleCentePoint[0];
+	B1[1] = AnkleCentePoint[2];
+	// 计算 A->B2 的方向向量
+	direction[0] = tibiaProximalCenterPoint[0] - hipCenterPoint[0];
+	direction[1] = tibiaProximalCenterPoint[2] - hipCenterPoint[2];
+	// 标准化
+	direction.normalize();
+
+	cout << "A: (" << A[0] << ", " << A[1] << ") " << endl;
+	cout << "B1: (" << B1[0] << ", " << B1[1] << ") " << endl;
+	cout << "direction: (" << direction[0] << ", " << direction[1] << ") " << endl;
+
+
+	// 赋值合页点为C
+	if (judgModel_flag == 1)
+	{ 
+		// 左腿 
+		auto rotateTibiaPoint01 = rotateTibia_tmp->GetPoint(0);
+		auto rotateTibiaPoint02 = rotateTibia_tmp->GetPoint(1);
+		// 赋值
+		C[0] = rotateTibiaPoint01[0];
+		C[1] = rotateTibiaPoint01[2];
+		cout << "C: (" << C[0] << ", " << C[1] << ") " << endl;
+		// 方程求解
+		double angle_tmp = calculateAngle(A, C, B1, direction);
+		// 保留两位小数
+		angle_tmp = round(angle_tmp * 100.0) / 100.0;
+
+		m_Controls.LineEdit_angle->setText(QString::number(angle_tmp));
+		std::cout << "The angle between the two directions is: " << angle_tmp << " degrees." << std::endl;
+		m_Controls.LineEdit_transAngle->setText(QString::number(angle_tmp));
+		// 计算高度
+		CaculateStrechHeigh();
+		// 应用旋转
+		RotatePlus();
+	}
+	else if (judgModel_flag == 0)
+	{
+		// 右腿
+		auto rotateTibiaPoint01 = rotateTibia_tmp->GetPoint(3);
+		auto rotateTibiaPoint02 = rotateTibia_tmp->GetPoint(2);
+		// 赋值
+		C[0] = rotateTibiaPoint01[0];
+		C[1] = rotateTibiaPoint01[2];
+		cout << "C: (" << C[0] << ", " << C[1] << ") " << endl;
+		// 方程求解
+		double angle_tmp = calculateAngle(A, C, B1, direction);
+		m_Controls.LineEdit_angle->setText(QString::number(angleInDegrees));
+		std::cout << "The angle between the two directions is: " << angleInDegrees << " degrees." << std::endl;
+		m_Controls.LineEdit_transAngle->setText(QString::number(angleInDegrees));
+
+		CaculateStrechHeigh();
+		// 这里的旋转会按照LinEdit中的数值来进行，数值在前面计算夹角的时候就被更新了
+		RotateMinus();
+	}
+	return true;
+}
+
+
 // 撑开角度规划
 bool HTONDI::OnCaculateStrechAngleClicked()
 {
@@ -1190,8 +1445,11 @@ bool HTONDI::OnCaculateStrechAngleClicked()
 	// 获取第一和第二个点
 	// 胫骨近端外侧点: tibiaProximalLateralPoint
 	// 胫骨近端内侧点: tibiaProximalMedialPoint
-	mitk::Point3D tibiaProximalLateralPoint = tibiaLandmarkPointSet->GetPoint(1);
-	mitk::Point3D tibiaProximalMedialPoint = tibiaLandmarkPointSet->GetPoint(2);
+	//mitk::Point3D tibiaProximalLateralPoint = tibiaLandmarkPointSet->GetPoint(1);
+	//mitk::Point3D tibiaProximalMedialPoint = tibiaLandmarkPointSet->GetPoint(2);
+
+	mitk::Point3D tibiaProximalLateralPoint = tibiaLandmarkPointSet->GetPoint(0);
+	mitk::Point3D tibiaProximalMedialPoint = tibiaLandmarkPointSet->GetPoint(1);
 
 	// 计算胫骨近端(胫骨平台中心)的中心点
 	mitk::Point3D tibiaProximalCenterPoint;
@@ -1261,6 +1519,7 @@ bool HTONDI::OnCaculateStrechAngleClicked()
 		std::cout << "The angle between the two directions is: " << angleInDegrees << " degrees." << std::endl;
 		m_Controls.LineEdit_transAngle->setText(QString::number(angleInDegrees));
 
+
 		CaculateStrechHeigh();
 		// 这里的旋转会按照LinEdit中的数值来进行，数值在前面计算夹角的时候就被更新了
 		RotatePlus();
@@ -1329,6 +1588,18 @@ bool HTONDI::OnResetAngleClicked()
 	OnCutTibetClicked();
 	return true;
 }
+bool HTONDI::OnsetAngleLineClicked()
+{
+	/* 确认当前规划结果 */
+	m_Controls.textBrowser_Action->append("Action: Set Angle and Line.");
+	// 保存力线 + 占比
+	//LineEdit_angle
+	//showForceLine_textEdit
+	//m_Controls.label_setLine->setText(QString::number(m_Controls.showForceLine_textEdit->));
+
+	return true;
+}
+
 
 // 下肢力线规划
 bool HTONDI::OnShowMachineLineClicked()
@@ -1621,15 +1892,71 @@ void HTONDI::updateProportation()
 		// 计算交点在水平线段上的位置
 		double propatation = sqrt(pow(intersection[0] - Point_0[0], 2)) / sqrt(pow(Point_1[0] - Point_0[0], 2));
 		cout << "propatation = " << propatation << endl;
-		propatation = ceil(propatation * 100);
+		// 保留一位小数
+		propatation = propatation * 100;
+		propatation = round(propatation * 10.0) / 10.0;
 		m_Controls.textBrowser_Action->append(QString::number(propatation) + "%");
 		m_Controls.showForceLine_textEdit->setText(QString::number(propatation) + "%");
+
+		// 保存 propatation 数据
+		line_set = propatation;
 	}
 	else {
 		cout << "test 08" << endl;
 		std::cout << "The lines do not intersect in the coronal plane." << std::endl;
 		m_Controls.textBrowser_Action->append(QString::number(0) + "%");
 		m_Controls.showForceLine_textEdit->setText(QString::number(0) + "%");
+	}
+}
+
+void HTONDI::updateProportation03()
+{
+	// 计算新力线在胫骨平台占比
+	// 直接从库中加载 股骨中心点 和 踝关节中心点
+	mitk::DataNode::Pointer ankleCenter = GetDataStorage()->GetNamedNode("ankleCenterPoint03");
+	auto ankleCenterPoint = dynamic_cast<mitk::PointSet*>(ankleCenter->GetData());
+
+	mitk::DataNode::Pointer hipCenter = GetDataStorage()->GetNamedNode("hipCenterPoint");
+	auto hipCenterPoint = dynamic_cast<mitk::PointSet*>(hipCenter->GetData());
+
+	// 取得力线的两端点
+	auto ForcePoint1 = ankleCenterPoint->GetPoint(0);
+	auto ForcePoint2 = hipCenterPoint->GetPoint(0);
+
+	// 从胫骨踝点集中取得胫骨平台两端点
+	mitk::DataNode::Pointer tibiaLandmarkNode = GetDataStorage()->GetNamedNode("tibiaLandmarkPointSet");
+	auto tibiaLandmarkPointSet = dynamic_cast<mitk::PointSet*>(tibiaLandmarkNode->GetData());
+
+	// 获取胫骨近端 外侧点 + 内侧点
+	auto Point_0 = tibiaLandmarkPointSet->GetPoint(0);
+	auto Point_1 = tibiaLandmarkPointSet->GetPoint(1);
+
+	// 计算胫骨平台的宽度 = abs(x1 - x2) 或者 开放根
+	double tibia_length = sqrt(pow(Point_0[0] - Point_1[0], 2));
+
+	// 计算水平线段, 高度取胫骨近端内外侧两点的平均高度
+	double coronalZ = (Point_0[2] + Point_1[2]) / 2;
+
+	// XoZ 平面 (x, z)
+	// 创建一个二维平面上的水平线段, 线段的起点和终点分别是在冠状面上投影的两个点
+	Eigen::Vector2d line1ProjStart = { Point_0[0], coronalZ };
+	Eigen::Vector2d line1ProjEnd = { Point_1[0], coronalZ };
+
+	// 计算倾斜线段
+	Eigen::Vector2d line2ProjStart = { ForcePoint1[0], ForcePoint1[2] };
+	Eigen::Vector2d line2ProjEnd = { ForcePoint2[0], ForcePoint2[2] };
+
+	// 使用VTK数学库计算二维空间内两线段的交点
+	Eigen::Vector2d intersection;
+	if (LineLineIntersection(intersection, line1ProjStart, line1ProjEnd, line2ProjStart, line2ProjEnd)) {
+		// 计算交点在水平线段上的位置
+		double propatation = sqrt(pow(intersection[0] - Point_0[0], 2)) / sqrt(pow(Point_1[0] - Point_0[0], 2));
+		propatation = ceil(propatation * 100);
+		m_Controls.label_legforceLineCurrent->setText(QString::number(propatation) + "%");
+		m_Controls.label_legforceLineCurrentError->setText(QString::number(propatation) + "%");
+	}
+	else {
+		m_Controls.label_legforceLineCurrent->setText(QString::number(0) + "%");
 	}
 }
 
@@ -1680,7 +2007,8 @@ void HTONDI::updateProportation02()
 		// 计算交点在水平线段上的位置
 		double propatation = sqrt(pow(intersection[0] - Point_0[0], 2)) / sqrt(pow(Point_1[0] - Point_0[0], 2));
 		cout << "propatation = " << propatation << endl;
-		propatation = ceil(propatation * 100);
+		propatation = propatation * 100;
+		propatation = round(propatation * 10.0) / 10.0;
 		m_Controls.textBrowser_Action->append(QString::number(propatation) + "%");
 		m_Controls.showForceLine02_textEdit->setText(QString::number(propatation) + "%");
 	}

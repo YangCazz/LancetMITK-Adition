@@ -23,4 +23,5 @@ set(MITK_PLUGINS
   org.mitk.lancet.aimooetoolcoordtransform:ON
   org.mitk.lancet.htondi:ON
   # org.mitk.lancet.CZXtest:ON
+  org.mitk.lancet.neurosurgery:ON
 )

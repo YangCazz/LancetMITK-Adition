@@ -2605,14 +2605,16 @@ bool HTONDI::OnSetAxialCutClicked()
 	return true;
 }
 
-
-
 // 术中力线
 bool HTONDI::OnCheckCutResultClicked()
 {
 	/* 确定水平位置 */
 	m_Controls.textBrowser_Action->append("Action: Check Cut Result.");
-
+	if (check_axialCut && check_sagCut)
+	{
+		check_cutPlane = true;
+		m_Controls.textBrowser_Action->append("Check Cut Result: Cut Plane is ready.");
+	}
 	return true;
 }
 
@@ -2620,13 +2622,169 @@ bool HTONDI::OnGenerateCutSurfaceClicked()
 {
 	/* 进行模型分割 */
 	m_Controls.textBrowser_Action->append("Action: Generate Cut Surface.");
+
+	if (check_cutPlane)
+	{
+		m_Controls.textBrowser_Action->append("Action: Start Generate Cut Surface.");
+		// 进行截骨计算 
+		auto AxialPlane = GetDataStorage()->GetNamedNode("1st cut plane");
+		auto SagPlane = GetDataStorage()->GetNamedNode("2nd cut plane");
+
+		// 进行截骨
+		if (AxialPlane != nullptr && SagPlane != nullptr) {
+			CutTibiaWithTwoPlanes();
+		}
+		else {
+			m_Controls.textBrowser_Action->append("Please Modify Cut first!");
+			return false;
+		}
+		// 
+		auto proximalTibiaSurface = GetDataStorage()->GetNamedNode("proximal tibiaSurface");
+		auto distalTibiaSurface = GetDataStorage()->GetNamedNode("distal tibiaSurface");
+		// 记录下这个初始位置，用于后面重置操作
+		m_distalTibiaPosition = distalTibiaSurface->GetData()->GetGeometry()->GetOrigin();
+		SetModelOpacity(proximalTibiaSurface, 0.5f);
+		SetModelOpacity(distalTibiaSurface, 0.5f);
+	}
+	else
+	{
+		m_Controls.textBrowser_Action->append("Action: Please Finish Cut first!");
+	}
 	return true;
 }
 
 bool HTONDI::OnStartCutAngleGuideClicked()
 {
-	/* 术中力线导航 */
+	/* 术中力线导航 
+		1. 借助两个参考整列和几个点在冠状面的投影来计算撑开角度
+		2.
+
+	导航是在追踪之后完成的，由此首先记录下当前的相关位置，然后打开股骨跟踪，计算相对位置变化计算转化矩阵
+	应用转化矩阵给股骨 + 胫骨近端 或者 胫骨远端，同时更新图像和对应其上的点数据
+	然后计算实时力线
+	*/
 	m_Controls.textBrowser_Action->append("Action: Start Cut Angle Guide.");
+
+	auto femurIndex = m_VegaToolStorage->GetToolIndexByName("FemurRF");
+	auto tibiaIndex = m_VegaToolStorage->GetToolIndexByName("TibiaRF");
+
+	if (femurIndex == -1 || tibiaIndex == -1)
+	{
+		m_Controls.textBrowser_Action->append("There is no 'FemurRF' or 'TibiaRF' in the toolStorage!");
+		return false;
+	}
+
+	// 首先取出追踪的静态矩阵
+	auto T_CameraToTibiaR = vtkMatrix4x4::New();
+	T_CameraToTibiaR->DeepCopy(m_T_cameraToTibiaRF);
+
+	auto T_FemurRFToCamera = vtkMatrix4x4::New();
+	T_FemurRFToCamera->DeepCopy(m_T_cameraToFemurRF);
+	T_FemurRFToCamera->Invert();
+
+	auto T_TibiaRFToImage = vtkMatrix4x4::New();
+	T_TibiaRFToImage->DeepCopy(m_ObjectRfToImageMatrix_hto);
+
+	auto tmpTrans_ImageToFemurRF = vtkTransform::New();
+	tmpTrans_ImageToFemurRF->Identity();
+	tmpTrans_ImageToFemurRF->PostMultiply();
+	tmpTrans_ImageToFemurRF->SetMatrix(T_TibiaRFToImage);
+	tmpTrans_ImageToFemurRF->Concatenate(T_CameraToTibiaR);
+	tmpTrans_ImageToFemurRF->Concatenate(T_FemurRFToCamera);
+	tmpTrans_ImageToFemurRF->Update();
+
+	auto T_ImageToFemurRF = tmpTrans_ImageToFemurRF->GetMatrix();
+	
+	// 1. 首先记录几个初始信息
+	//  0---4---3
+	//  |		|
+	//  1-------2
+	// 左腿的转轴是 3->2, 记录 0 3
+	// 右腿的转轴是 0->1
+	// 需要记录下初始情况下关键点在参考整列下的位置
+	// N_x_Under_Image = T_Image_To_TibiaRF * T_TibiaRF_To_FemurRF * N_x_Under_FemurRF
+	// N_x_Under_FemurRF = T_Camera_To_FemurRF.inverse() * T_Camera_To_TibiaRF * T_TibiaRF_To_Image * N_x_Under_Image
+	
+	// N_x_Under_Image = T_Image_To_TibiaRF  * N_x_Under_TibiaRF
+	// N_x_Under_TibiaRF = T_TibiaRF_To_Image * N_x_Under_Image
+
+	// 取出点 0 3 在Image中的位置
+	mitk::Point3D point_a = mitkPointSet1->GetPoint(0);
+	mitk::Point3D point_b = mitkPointSet1->GetPoint(3);
+
+	// 然后分别计算 N_x_Under_FemurRF 和 N_x_Under_TibiaRF
+	// 计算 N_x_Under_FemurRF
+	Eigen::Vector4d point_a_image(point_a[0], point_a[1], point_a[2], 1.0);
+	Eigen::Vector4d point_b_image(point_b[0], point_b[1], point_b[2], 1.0);
+	Eigen::Matrix4d T_ImageToFemurRF_eigen;
+	for (int i = 0; i < 4; ++i)
+		for (int j = 0; j < 4; ++j)
+		{
+			T_ImageToFemurRF_eigen(i, j) = T_ImageToFemurRF->GetElement(i, j);
+		}
+	point_a_femurRF = T_ImageToFemurRF_eigen * point_a_image;
+	point_b_femurRF = T_ImageToFemurRF_eigen * point_b_image;
+	// 计算 N_x_Under_TibiaRF
+	Eigen::Matrix4d T_TibiaRFToImage_eigen;
+	for (int i = 0; i < 4; ++i)
+		for (int j = 0; j < 4; ++j)
+		{
+			T_TibiaRFToImage_eigen(i, j) = T_TibiaRFToImage->GetElement(i, j);
+		}
+	point_a_tibiaRF = T_TibiaRFToImage_eigen.inverse() * point_a_image;
+	point_b_tibiaRF = T_TibiaRFToImage_eigen.inverse() * point_b_image;
+
+	// 打印结果
+	m_Controls.textBrowser_Action->append("Right Leg - Point A in FemurRF: ("
+		+ QString::number(point_a_femurRF[0]) + ", " + QString::number(point_a_femurRF[1]) + ", " + QString::number(point_a_femurRF[2]) + ")");
+	m_Controls.textBrowser_Action->append("Right Leg - Point B in FemurRF: ("
+		+ QString::number(point_b_femurRF[0]) + ", " + QString::number(point_b_femurRF[1]) + ", " + QString::number(point_b_femurRF[2]) + ")");
+	m_Controls.textBrowser_Action->append("Right Leg - Point A in TibiaRF: ("
+		+ QString::number(point_a_tibiaRF[0]) + ", " + QString::number(point_a_tibiaRF[1]) + ", " + QString::number(point_a_tibiaRF[2]) + ")");
+	m_Controls.textBrowser_Action->append("Right Leg - Point B in TibiaRF: ("
+		+ QString::number(point_b_tibiaRF[0]) + ", " + QString::number(point_b_tibiaRF[1]) + ", " + QString::number(point_b_tibiaRF[2]) + ")");
+
+	// 2. 对踝关节中心进行复制
+	// 获取胫骨踝点集
+	mitk::DataNode::Pointer tibiaLandmarkNode = GetDataStorage()->GetNamedNode("tibiaLandmarkPointSet");
+	auto tibiaLandmarkPointSet = dynamic_cast<mitk::PointSet*>(tibiaLandmarkNode->GetData());
+
+	// 获取第三和第四个点
+	mitk::Point3D anklePoint1 = tibiaLandmarkPointSet->GetPoint(2);
+	mitk::Point3D anklePoint2 = tibiaLandmarkPointSet->GetPoint(3);
+
+	mitk::Point3D ankleCenterPoint;
+	ankleCenterPoint[0] = (anklePoint1[0] + anklePoint2[0]) / 2;
+	ankleCenterPoint[1] = (anklePoint1[1] + anklePoint2[1]) / 2;
+	ankleCenterPoint[2] = (anklePoint1[2] + anklePoint2[2]) / 2;
+
+	// 首先删除原有的
+	auto ankleCenter = GetDataStorage()->GetNamedNode("ankleCenterPoint03");
+	if (ankleCenter != nullptr) {
+		GetDataStorage()->Remove(ankleCenter);
+	}
+
+	mitk::PointSet::Pointer ankleCenterPointSet = mitk::PointSet::New();
+	ankleCenterPointSet->InsertPoint(0, ankleCenterPoint);
+
+	mitk::DataNode::Pointer ankleCenterNode = mitk::DataNode::New();
+	ankleCenterNode->SetData(ankleCenterPointSet);
+	ankleCenterNode->SetName("ankleCenterPoint03");
+	ankleCenterNode->SetProperty("color", mitk::ColorProperty::New(0.0, 1.0, 0.0));
+	ankleCenterNode->SetProperty("pointsize", mitk::FloatProperty::New(5.0));
+	GetDataStorage()->Add(ankleCenterNode);
+
+	// 3. 然后开始信息追踪
+	if (m_HTOFemurUpdateTimer == nullptr)
+	{
+		m_HTOFemurUpdateTimer = new QTimer(this);
+	}
+	m_Controls.textBrowser_Action->append("Start femur guide.");
+
+	connect(m_HTOFemurUpdateTimer, SIGNAL(timeout()), this, SLOT(UpdateHTOFemur()));
+	m_HTOFemurUpdateTimer->start(100);
+
+
 	return true;
 }
 
@@ -2649,4 +2807,163 @@ bool HTONDI::OnSetSteelClicked()
 	/* 确认钢板位置 */
 	m_Controls.textBrowser_Action->append("Action: Set Steel.");
 	return true;
+}
+
+
+void HTONDI::UpdateHTOFemur()
+{
+	/* 进行掰开角度导航 */
+	if (GetDataStorage()->GetNamedNode("femurSurface") == nullptr)
+	{
+		return;
+	}
+	auto femurIndex = m_VegaToolStorage->GetToolIndexByName("FemurRF");
+	auto tibiaIndex = m_VegaToolStorage->GetToolIndexByName("TibiaRF");
+
+	if (femurIndex == -1 || tibiaIndex == -1)
+	{
+		m_Controls.textBrowser_Action->append("There is no 'FemurRF' or 'TibiaRF' in the toolStorage!");
+		return;
+	}
+
+	// 首先取出追踪的静态矩阵
+	auto T_TibiaRFToCamera= vtkMatrix4x4::New();
+	T_TibiaRFToCamera->DeepCopy(m_T_cameraToTibiaRF);
+	T_TibiaRFToCamera->Invert();
+
+	auto T_CameraToFemurRF = vtkMatrix4x4::New();
+	T_CameraToFemurRF->DeepCopy(m_T_cameraToFemurRF);
+
+	auto tmpTrans_TibiaRFoFemurRF = vtkTransform::New();
+	tmpTrans_TibiaRFoFemurRF->Identity();
+	tmpTrans_TibiaRFoFemurRF->PostMultiply();
+	tmpTrans_TibiaRFoFemurRF->SetMatrix(T_CameraToFemurRF);
+	tmpTrans_TibiaRFoFemurRF->Concatenate(T_TibiaRFToCamera);
+	tmpTrans_TibiaRFoFemurRF->Update();
+
+	auto T_TibiaRFoFemurRF = tmpTrans_TibiaRFoFemurRF->GetMatrix();
+
+	Eigen::Matrix4d T_TibiaRFoFemurRF_eigen;
+	for (int i = 0; i < 4; ++i)
+		for (int j = 0; j < 4; ++j)
+		{
+			T_TibiaRFoFemurRF_eigen(i, j) = T_TibiaRFoFemurRF->GetElement(i, j);
+		}
+
+	//  0---4---3
+	//  |		|
+	//  1-------2
+	// a 0, b 3
+	point_a_femurRF_current = T_TibiaRFoFemurRF_eigen * point_a_femurRF;
+	point_b_femurRF_current = T_TibiaRFoFemurRF_eigen * point_b_femurRF;
+
+	// 取出两个向量位置，计算夹角
+	Eigen::Vector3d first = (point_b_tibiaRF - point_a_tibiaRF).head<3>();
+	Eigen::Vector3d last = (point_b_femurRF_current - point_a_femurRF_current).head<3>();
+	first.normalized();
+	last.normalized();
+
+	// 夹角
+	Eigen::Vector3d rotAxis = first.cross(last);
+	rotAxis.normalized();
+
+	double rotAngle = 180 * acos(first.dot(last)) / 3.141592654;
+	m_Controls.label_angleCurrent->setText(QString::number(rotAngle));
+	
+
+	auto distalTibiaSurface = GetDataStorage()->GetNamedNode("distal tibiaSurface02");
+	if (distalTibiaSurface == nullptr) {
+		m_Controls.textBrowser_Action->append("Please Cut Tibia First.");
+		return;
+	}
+	auto ankleCenter03 = GetDataStorage()->GetNamedNode("ankleCenterPoint03");
+	if (ankleCenter03 == nullptr) {
+		m_Controls.textBrowser_Action->append("No ankleCenterPoint03.");
+		return;
+	}
+
+	if (judgModel_flag == 1)
+	{
+		// 左腿的时候，转轴为32
+		// 对截骨远端进行旋转，绕合页点轴向顺时针
+		double vx = mitkPointSet1->GetPoint(3)[0] - mitkPointSet1->GetPoint(2)[0];
+		double vy = mitkPointSet1->GetPoint(3)[1] - mitkPointSet1->GetPoint(2)[1];
+		double vz = mitkPointSet1->GetPoint(3)[2] - mitkPointSet1->GetPoint(2)[2];
+		double length = sqrt(pow(vx, 2) + pow(vy, 2) + pow(vz, 2));
+		double direction_cutPlane[3]{ vx / length,vy / length,vz / length };
+		double angle = rotAngle;
+
+		// 对于左腿右腿，设计不同的旋转轴
+		// 0:右腿. 1：左腿
+		double center[3];
+		center[0] = mitkPointSet1->GetPoint(3)[0];
+		center[1] = mitkPointSet1->GetPoint(3)[1];
+		center[2] = mitkPointSet1->GetPoint(3)[2];
+
+		// 应用旋转
+		HTONDI::Rotate(center, direction_cutPlane, angle, distalTibiaSurface->GetData());
+		HTONDI::Rotate(center, direction_cutPlane, angle, ankleCenter03->GetData());
+	}
+	else
+	{
+		// 右腿的时候，转轴为01
+		// 对截骨远端进行旋转，绕合页点轴向顺时针
+		double vx = mitkPointSet1->GetPoint(0)[0] - mitkPointSet1->GetPoint(1)[0];
+		double vy = mitkPointSet1->GetPoint(0)[1] - mitkPointSet1->GetPoint(1)[1];
+		double vz = mitkPointSet1->GetPoint(0)[2] - mitkPointSet1->GetPoint(1)[2];
+		double length = sqrt(pow(vx, 2) + pow(vy, 2) + pow(vz, 2));
+		double direction_cutPlane[3]{ vx / length,vy / length,vz / length };
+		double angle = -rotAngle;
+
+		// 对于左腿右腿，设计不同的旋转轴
+		// 0:右腿. 1：左腿
+		double center[3];
+		center[0] = mitkPointSet1->GetPoint(3)[0];
+		center[1] = mitkPointSet1->GetPoint(3)[1];
+		center[2] = mitkPointSet1->GetPoint(3)[2];
+
+		// 应用旋转
+		HTONDI::Rotate(center, direction_cutPlane, angle, distalTibiaSurface->GetData());
+		HTONDI::Rotate(center, direction_cutPlane, angle, ankleCenter03->GetData());
+	}
+	// 然后，计算一条新的力线
+	// 直接从库中加载股骨头中心点
+	mitk::DataNode::Pointer hipCenterNode = GetDataStorage()->GetNamedNode("hipCenterPoint");
+	auto hipCenterPoint = dynamic_cast<mitk::PointSet*>(hipCenterNode->GetData())->GetPoint(0);
+
+	// 加载current踝关节中心
+	mitk::DataNode::Pointer ankleCenter03_tmp = GetDataStorage()->GetNamedNode("ankleCenterPoint03");
+	auto ankleCenterPoint03 = dynamic_cast<mitk::PointSet*>(ankleCenter03_tmp->GetData())->GetPoint(0);
+
+	// 创建新的点集
+	mitk::PointSet::Pointer legForceLine = mitk::PointSet::New();
+	legForceLine->SetPoint(0, hipCenterPoint);
+	legForceLine->SetPoint(1, ankleCenterPoint03);
+
+	auto legForceLineCurrentSource = GetDataStorage()->GetNamedNode("legForceLineCurrent");
+	if (legForceLineCurrentSource)
+	{
+		legForceLineCurrentSource->SetData(legForceLine);
+	}
+	else
+	{
+		// 如果节点不存在，创建新的节点
+		mitk::DataNode::Pointer legForceLineNode = mitk::DataNode::New();
+		legForceLineNode->SetData(legForceLine);
+		legForceLineNode->SetName("legForceLineCurrent");
+
+		// 可以在此处添加其他属性设置，例如显示属性
+		legForceLineNode->SetBoolProperty("show contour", true);
+		legForceLineNode->SetFloatProperty("contoursize", 1.0);
+
+		legForceLineNode->SetVisibility(true);
+		// 将新节点添加到数据存储中
+		GetDataStorage()->Add(legForceLineNode);
+	}
+	// 然后更新力线占比
+	updateProportation03();
+
+	// 更新窗口
+	GetDataStorage()->Modified();
+	mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }

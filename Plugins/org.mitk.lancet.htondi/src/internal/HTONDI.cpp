@@ -306,7 +306,7 @@ void HTONDI::CreateQT_PreoperativePlan()
 
 	// 4. 撑开角度规划
 	// 计算规划角度并可视化
-	connect(m_Controls.caculateAngle_pushButton, &QPushButton::clicked, this, &HTONDI::OnCaculateStrechAngleClicked);
+	connect(m_Controls.caculateAngle_pushButton, &QPushButton::clicked, this, &HTONDI::OnCaculateStrechAngleClicked02);
 
 	// 重置规划角度
 	connect(m_Controls.resetAngle_pushButton, &QPushButton::clicked, this, &HTONDI::OnResetAngleClicked);
@@ -314,6 +314,10 @@ void HTONDI::CreateQT_PreoperativePlan()
 	// 旋转胫骨远端
 	connect(m_Controls.pushButton_lt, &QPushButton::clicked, this, &HTONDI::RotateMinus);
 	connect(m_Controls.pushButton_rt, &QPushButton::clicked, this, &HTONDI::RotatePlus);
+
+	// 确认规划结果
+	connect(m_Controls.setAngleLine_pushButton, &QPushButton::clicked, this, &HTONDI::OnsetAngleLineClicked);
+	
 
 
 	// 5. 钢板规划
