@@ -5,6 +5,12 @@ set(SRC_CPP_FILES
 set(INTERNAL_CPP_FILES
   org_mitk_lancet_neurosurgery_Activator.cpp
   NeuroSurgery.cpp
+  NS_Basic.cpp
+  NS_ImageProcess.cpp
+  NS_PreoperativePlan.cpp
+  NS_IntraoperativePlan.cpp
+  NS_PostoperativeVerify.cpp
+  NS_AccVerify.cpp
 )
 
 set(UI_FILES
@@ -14,6 +20,12 @@ set(UI_FILES
 set(MOC_H_FILES
   src/internal/org_mitk_lancet_neurosurgery_Activator.h
   src/internal/NeuroSurgery.h
+  src/internal/NS_Basic.h
+  src/internal/NS_ImageProcess.h
+  src/internal/NS_PreoperativePlan.h
+  src/internal/NS_IntraoperativePlan.h
+  src/internal/NS_PostoperativeVerify.h
+  src/internal/NS_AccVerify.h
 )
 
 # list of resource files which can be used by the plug-in

@@ -1,98 +1,86 @@
 /*============================================================================
-
-The Medical Imaging Interaction Toolkit (MITK)
-
-Copyright (c) German Cancer Research Center (DKFZ)
+Robot-assisted Surgical Navigation Extension based on MITK
+Copyright (c) Hangzhou LancetRobotics,CHINA
 All rights reserved.
-
-Use of this source code is governed by a 3-clause BSD license that can be
-found in the LICENSE file.
-
 ============================================================================*/
 
-
-// Blueberry
+#include "NeuroSurgery.h"
 #include <berryISelectionService.h>
 #include <berryIWorkbenchWindow.h>
-
-// Qmitk
-#include "NeuroSurgery.h"
-
-// Qt
 #include <QMessageBox>
-
-// mitk image
 #include <mitkImage.h>
 
 const std::string NeuroSurgery::VIEW_ID = "org.mitk.views.neurosurgery";
 
 void NeuroSurgery::SetFocus()
 {
-  m_Controls.buttonPerformImageProcessing->setFocus();
+    // do nothing, but you can't delete it
 }
 
-void NeuroSurgery::CreateQtPartControl(QWidget *parent)
+void NeuroSurgery::CreateQtPartControl(QWidget* parent)
 {
-  // create GUI widgets from the Qt Designer's .ui file
-  m_Controls.setupUi(parent);
-  connect(m_Controls.buttonPerformImageProcessing, &QPushButton::clicked, this, &NeuroSurgery::DoImageProcessing);
+    m_Controls.setupUi(parent);
+
+    // Param Init
+    ParamsInit();
+
+    // make UI plane for different func plane.
+    CreatQT_Basic();
+    CreateQT_ImageProcess();
+    CreateQT_PreoperativePlan();
+    CreateQT_IntraoperativePlan();
+    CreateQT_PostoperativeVerify();
+    CreateQT_AccVerifyy();
+
 }
 
-void NeuroSurgery::OnSelectionChanged(berry::IWorkbenchPart::Pointer /*source*/,
-                                                const QList<mitk::DataNode::Pointer> &nodes)
+void NeuroSurgery::CreatQT_Basic()
 {
-  // iterate all selected objects, adjust warning visibility
-  foreach (mitk::DataNode::Pointer node, nodes)
-  {
-    if (node.IsNotNull() && dynamic_cast<mitk::Image *>(node->GetData()))
-    {
-      m_Controls.labelWarning->setVisible(false);
-      m_Controls.buttonPerformImageProcessing->setEnabled(true);
-      return;
-    }
-  }
-
-  m_Controls.labelWarning->setVisible(true);
-  m_Controls.buttonPerformImageProcessing->setEnabled(false);
+    /* Basic Funs
+    * 1.
+    * 2.
+    */
+    // Initialize selectors
+    InitSurfaceSelector(m_Controls.mitk_T1_Pic, this);
+    //InitPointSetSelector(m_Controls.someWidget, this);
 }
 
-void NeuroSurgery::DoImageProcessing()
+void NeuroSurgery::CreateQT_PreoperativePlan()
 {
-  QList<mitk::DataNode::Pointer> nodes = this->GetDataManagerSelection();
-  if (nodes.empty())
-    return;
+    /* Funcs for Preoperative planning
+    * 1.
+    * 2.
+    */
+}
 
-  mitk::DataNode *node = nodes.front();
+void NeuroSurgery::CreateQT_ImageProcess()
+{
+    /* Funcs for Multimodal Brain Image Processing
+    * 1.
+    * 2.
+    */
+}
 
-  if (!node)
-  {
-    // Nothing selected. Inform the user and return
-    QMessageBox::information(nullptr, "Template", "Please load and select an image before starting image processing.");
-    return;
-  }
+void NeuroSurgery::CreateQT_IntraoperativePlan()
+{
+    /* Funcs for Intraoperative planning
+    * 1.
+    * 2.
+    */
+}
 
-  // here we have a valid mitk::DataNode
+void NeuroSurgery::CreateQT_PostoperativeVerify()
+{
+    /* Funcs for Intraoperative planning
+    * 1.
+    * 2.
+    */
+}
 
-  // a node itself is not very useful, we need its data item (the image)
-  mitk::BaseData *data = node->GetData();
-  if (data)
-  {
-    // test if this data item is an image or not (could also be a surface or something totally different)
-    mitk::Image *image = dynamic_cast<mitk::Image *>(data);
-    if (image)
-    {
-      std::stringstream message;
-      std::string name;
-      message << "Performing image processing for image ";
-      if (node->GetName(name))
-      {
-        // a property called "name" was found for this DataNode
-        message << "'" << name << "'";
-      }
-      message << ".";
-      MITK_INFO << message.str();
-
-      // actually do something here...
-    }
-  }
+void NeuroSurgery::CreateQT_AccVerifyy()
+{
+    /* Funcs for NS system accuracy verification
+    * 1.
+    * 2.
+    */
 }

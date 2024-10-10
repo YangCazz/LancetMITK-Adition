@@ -1,55 +1,43 @@
 /*============================================================================
-
-The Medical Imaging Interaction Toolkit (MITK)
-
-Copyright (c) German Cancer Research Center (DKFZ)
+Robot-assisted Surgical Navigation Extension based on MITK
+Copyright (c) Hangzhou LancetRobotics,CHINA
 All rights reserved.
-
-Use of this source code is governed by a 3-clause BSD license that can be
-found in the LICENSE file.
-
 ============================================================================*/
-
 
 #ifndef NeuroSurgery_h
 #define NeuroSurgery_h
 
 #include <berryISelectionListener.h>
-
 #include <QmitkAbstractView.h>
-
 #include "ui_NeuroSurgeryControls.h"
+#include "NS_Basic.h" // °üº¬ NS_Basic.h
 
-/**
-  \brief NeuroSurgery
-
-  \warning  This class is not yet documented. Use "git blame" and ask the author to provide basic documentation.
-
-  \sa QmitkAbstractView
-  \ingroup ${plugin_target}_internal
-*/
 class NeuroSurgery : public QmitkAbstractView
 {
-  // this is needed for all Qt objects that should have a Qt meta-object
-  // (everything that derives from QObject and wants to have signal/slots)
-  Q_OBJECT
+	Q_OBJECT
 
 public:
-  static const std::string VIEW_ID;
+	static const std::string VIEW_ID;
 
 protected:
-  virtual void CreateQtPartControl(QWidget *parent) override;
+	virtual void CreateQtPartControl(QWidget* parent) override;
+	virtual void SetFocus() override;
 
-  virtual void SetFocus() override;
+	// Parm Init
+	void ParamsInit();
 
-  /// \brief called by QmitkFunctionality when DataManager's selection has changed
-  virtual void OnSelectionChanged(berry::IWorkbenchPart::Pointer source,
-                                  const QList<mitk::DataNode::Pointer> &nodes) override;
+	// UI Funcs Connection
+	void CreatQT_Basic();
+	void CreateQT_ImageProcess();
+	void CreateQT_PreoperativePlan();
+	void CreateQT_IntraoperativePlan();
+	void CreateQT_PostoperativeVerify();
+	void CreateQT_AccVerifyy();
 
-  /// \brief Called when the user clicks the GUI button
-  void DoImageProcessing();
+	// Basic func
+	void DataCheck();
 
-  Ui::NeuroSurgeryControls m_Controls;
+	Ui::NeuroSurgeryControls m_Controls;
 };
 
 #endif // NeuroSurgery_h
