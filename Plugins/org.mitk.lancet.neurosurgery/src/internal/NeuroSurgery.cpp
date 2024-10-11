@@ -37,12 +37,23 @@ void NeuroSurgery::CreateQtPartControl(QWidget* parent)
 void NeuroSurgery::CreatQT_Basic()
 {
     /* Basic Funs
-    * 1.
-    * 2.
+    * 1. data load
+    * 2. data select
     */
+    // data load
+    connect(m_Controls.checkBaseData_pushButton, &QPushButton::clicked, this, &NeuroSurgery::OnCheckDataClicked);
+    
     // Initialize selectors
-    InitSurfaceSelector(m_Controls.mitk_T1_Pic, this);
-    //InitPointSetSelector(m_Controls.someWidget, this);
+    // Use AC-PC-HI to Set Pos of Brain 3d Scans
+    InitPointSetSelector(m_Controls.mitk_T1_Pic);
+    InitPointSetSelector(m_Controls.mitk_T2_Pic);
+    InitPointSetSelector(m_Controls.mitk_PET_Pic);
+    InitPointSetSelector(m_Controls.mitk_CT_Pic);
+    InitPointSetSelector(m_Controls.mitk_Vessel_Pic);
+
+    // data colorfy
+    connect(m_Controls.pushButton_colorfyPET, &QPushButton::clicked, this, &NeuroSurgery::OnCheckPETColorfyClicked);
+
 }
 
 void NeuroSurgery::CreateQT_PreoperativePlan()
@@ -51,6 +62,9 @@ void NeuroSurgery::CreateQT_PreoperativePlan()
     * 1.
     * 2.
     */
+
+    // auto image registration
+
 }
 
 void NeuroSurgery::CreateQT_ImageProcess()

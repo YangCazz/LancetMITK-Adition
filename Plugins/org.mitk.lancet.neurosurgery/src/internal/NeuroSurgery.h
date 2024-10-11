@@ -10,7 +10,15 @@ All rights reserved.
 #include <berryISelectionListener.h>
 #include <QmitkAbstractView.h>
 #include "ui_NeuroSurgeryControls.h"
-#include "NS_Basic.h" // °üº¬ NS_Basic.h
+
+#include "QmitkSingleNodeSelectionWidget.h"
+#include "mitkTrackingDeviceSource.h"
+
+// itk
+#include <itkImage.h>
+
+// mitk
+#include <mitkImage.h>
 
 class NeuroSurgery : public QmitkAbstractView
 {
@@ -18,6 +26,13 @@ class NeuroSurgery : public QmitkAbstractView
 
 public:
 	static const std::string VIEW_ID;
+
+public slots:
+	// Basic func
+	void OnCheckDataClicked();
+	void OnCheckPETMaskClicked();
+	void OnCheckPETColorfyClicked();
+	void OnRegistrateImageClicked();
 
 protected:
 	virtual void CreateQtPartControl(QWidget* parent) override;
@@ -35,7 +50,11 @@ protected:
 	void CreateQT_AccVerifyy();
 
 	// Basic func
-	void DataCheck();
+	void InitSurfaceSelector(QmitkSingleNodeSelectionWidget* widget);
+	void InitPointSetSelector(QmitkSingleNodeSelectionWidget* widget);
+
+	// Image processing
+	void RegisterPETToMRI(mitk::Image::Pointer petImage, mitk::Image::Pointer mriImage);
 
 	Ui::NeuroSurgeryControls m_Controls;
 };
