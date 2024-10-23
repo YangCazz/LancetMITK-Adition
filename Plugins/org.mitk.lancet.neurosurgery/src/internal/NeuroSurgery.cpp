@@ -8,7 +8,11 @@ All rights reserved.
 #include <berryISelectionService.h>
 #include <berryIWorkbenchWindow.h>
 #include <QMessageBox>
+#include <QmitkAbstractView.h>
 #include <mitkImage.h>
+#include <QmitkAbstractNodeSelectionWidget.h>
+
+
 
 const std::string NeuroSurgery::VIEW_ID = "org.mitk.views.neurosurgery";
 
@@ -45,14 +49,13 @@ void NeuroSurgery::CreatQT_Basic()
     
     // Initialize selectors
     // Use AC-PC-HI to Set Pos of Brain 3d Scans
-    InitPointSetSelector(m_Controls.mitk_T1_Pic);
-    InitPointSetSelector(m_Controls.mitk_T2_Pic);
-    InitPointSetSelector(m_Controls.mitk_PET_Pic);
-    InitPointSetSelector(m_Controls.mitk_CT_Pic);
-    InitPointSetSelector(m_Controls.mitk_Vessel_Pic);
+    InitImageSelector(m_Controls.mitk_MRI_Pic);
+    InitImageSelector(m_Controls.mitk_PET_Pic);
+    InitImageSelector(m_Controls.mitk_CT_Pic);
+    InitImageSelector(m_Controls.mitk_DTI_Pic);
+    InitImageSelector(m_Controls.mitk_Vessel_Pic);
 
-    // data colorfy
-    connect(m_Controls.pushButton_colorfyPET, &QPushButton::clicked, this, &NeuroSurgery::OnCheckPETColorfyClicked);
+    
 
 }
 
@@ -70,9 +73,72 @@ void NeuroSurgery::CreateQT_PreoperativePlan()
 void NeuroSurgery::CreateQT_ImageProcess()
 {
     /* Funcs for Multimodal Brain Image Processing
-    * 1.
-    * 2.
+    * 1. Image Registration
+    * 2. Processed File Load and re-processing
+    * 3. Image Co-Visulizetion
     */
+
+    // Image Registration
+    InitializeAlgorithmComboBox();
+
+
+    connect(m_Controls.targetNodeSelector, &QmitkAbstractNodeSelectionWidget::CurrentSelectionChanged, this, &NeuroSurgery::OnNodeSelectionChanged);
+    connect(m_Controls.movingNodeSelector, &QmitkAbstractNodeSelectionWidget::CurrentSelectionChanged, this, &NeuroSurgery::OnNodeSelectionChanged);
+    connect(m_Controls.targetMaskNodeSelector, &QmitkAbstractNodeSelectionWidget::CurrentSelectionChanged, this, &NeuroSurgery::OnNodeSelectionChanged);
+    connect(m_Controls.movingMaskNodeSelector, &QmitkAbstractNodeSelectionWidget::CurrentSelectionChanged, this, &NeuroSurgery::OnNodeSelectionChanged);
+
+    // 2. Processed File Load and re - processing
+    connect(m_Controls.pushButton_CheckProcessDataPath, &QPushButton::clicked, this, &NeuroSurgery::OnCheckProcessDataClicked);
+    connect(m_Controls.pushButton_ProcessedDataLoad, &QPushButton::clicked, this, &NeuroSurgery::OnLoadDataButtonClicked);
+
+    connect(m_Controls.pushButton_MaskToSeg, &QPushButton::clicked, this, &NeuroSurgery::OnMaskToSegmentClicked);
+    connect(m_Controls.pushButton_SegToModel, &QPushButton::clicked, this, &NeuroSurgery::OnSegmentToModelClicked);
+
+    connect(m_Controls.pushButton_Visulize, &QPushButton::clicked, this, &NeuroSurgery::OnVisualizeButtonClicked);
+
+
+   
+    
+    // 3. Image Co-Visulizetion
+    // data selection
+    connect(m_Controls.pushButton_FindAlgorithm, &QPushButton::clicked, this, &NeuroSurgery::OnFindAlgorithmClicked);
+    
+    connect(m_Controls.pushButton_SelectAlgorithm, &QPushButton::clicked, this, &NeuroSurgery::OnAlgorithmSelectionChanged);
+
+    // load Algorithm
+    connect(m_Controls.m_pbLoadSelected, &QPushButton::clicked, this, &NeuroSurgery::OnLoadAlgorithmButtonPushed);
+
+    // execution
+    connect(m_Controls.m_pbStartReg, SIGNAL(clicked()), this, SLOT(OnStartRegBtnPushed()));
+    connect(m_Controls.m_pbStopReg, SIGNAL(clicked()), this, SLOT(OnStopRegBtnPushed()));
+    connect(m_Controls.m_pbSaveLog, SIGNAL(clicked()), this, SLOT(OnSaveLogBtnPushed()));
+
+
+
+
+    // 2. Image Co-Visulizetion
+    // MRA
+    InitImageSelector(m_Controls.mitkNodeSelectWidget_MRA);
+    InitImageSelector(m_Controls.mitkNodeSelectWidget_MRA_Mask);
+    InitImageSelector(m_Controls.mitkNodeSelectWidget_MRA_MaskedResult);
+
+    // Mask fit & Region visulizetion
+    connect(m_Controls.pushButton_FitMask, &QPushButton::clicked, this, &NeuroSurgery::OnFitMaskClicked);
+    connect(m_Controls.pushButton_VesselReconstruction, &QPushButton::clicked, this, &NeuroSurgery::OnReconstructMRASurfaceClicked);
+
+    // PET
+    InitImageSelector(m_Controls.mitkNodeSelectWidget_PET);
+    InitImageSelector(m_Controls.mitkNodeSelectWidget_PET_Mask);
+    InitImageSelector(m_Controls.mitkNodeSelectWidget_PET_MaskedResult);
+
+    connect(m_Controls.pushButton_FitMask_PET, &QPushButton::clicked, this, &NeuroSurgery::OnMaskPETRegionClicked);
+    connect(m_Controls.pushButton_colorfyPET, &QPushButton::clicked, this, &NeuroSurgery::OnCheckPETColorfyClicked);
+    connect(m_Controls.pushButton_PET_Visulized, &QPushButton::clicked, this, &NeuroSurgery::OnPETResultVisualizeClicked);
+
+    // DTI
+    connect(m_Controls.pushButton_FIBVisulizetion, &QPushButton::clicked, this, &NeuroSurgery::OnLoadFibFileClicked);
+
+
 }
 
 void NeuroSurgery::CreateQT_IntraoperativePlan()
@@ -97,4 +163,24 @@ void NeuroSurgery::CreateQT_AccVerifyy()
     * 1.
     * 2.
     */
+}
+
+void NeuroSurgery::InitializeAlgorithmComboBox()
+{
+    // button init
+    m_Controls.movingNodeSelector->SetDataStorage(this->GetDataStorage());
+    m_Controls.targetNodeSelector->SetDataStorage(this->GetDataStorage());
+    m_Controls.movingMaskNodeSelector->SetDataStorage(this->GetDataStorage());
+    m_Controls.targetMaskNodeSelector->SetDataStorage(this->GetDataStorage());
+
+    m_Controls.movingNodeSelector->SetSelectionIsOptional(false);
+    m_Controls.targetNodeSelector->SetSelectionIsOptional(false);
+    m_Controls.movingMaskNodeSelector->SetSelectionIsOptional(true);
+    m_Controls.targetMaskNodeSelector->SetSelectionIsOptional(true);
+
+    AdaptFolderGUIElements();
+    CheckInputs();
+    ConfigureProgressInfos();
+    ConfigureRegistrationControls();
+    ConfigureNodeSelectors();
 }
